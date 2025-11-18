@@ -1568,7 +1568,19 @@ def handle_custom_basis(minp_file_path: str, section_id: str) -> bool:
                     break # Trovato, non serve leggere oltre
 
         if basis_found:
-            source_basis_file = f"basis_{section_id}"
+            # Extract section number from section_id (e.g., "!SECTION1" -> "1")
+            # This matches the logic in create_mrcc_input() (lines 591-594)
+            if section_id == "default":
+                basis_suffix = "default"
+            else:
+                match = re.match(r"!SECTION(\d+)", section_id, re.IGNORECASE)
+                if match:
+                    basis_suffix = match.group(1)  # Extract just the number
+                else:
+                    # Fallback: sanitize section_id if it's not in expected format
+                    basis_suffix = re.sub(r'[^\w.-]', '_', section_id).strip('_')
+
+            source_basis_file = f"basis_{basis_suffix}"
             print(f"  Attempting to copy custom basis from '{source_basis_file}' to '{target_genbas_file}'...")
             try:
                 # Copia il file basis specifico per questa section_id in GENBAS

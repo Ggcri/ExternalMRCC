@@ -449,7 +449,7 @@ calc=CCSD
 
 #### Method 2: Section-Specific Basis Files (Per-Section Custom Basis)
 
-For multi-section calculations where different sections need different basis sets, create separate `basis_N` files.
+For multi-section calculations where different sections need different basis sets, create separate basis files named `basis_N` where `N` is the section number (1, 2, 3, etc.).
 
 **Example with two sections:**
 
@@ -489,19 +489,19 @@ calc=CCSD
 
 **What happens:**
 1. External processes SECTION1:
-   - Detects `basis=custom` in MINP file
+   - Detects `basis=custom` in MINP_1 file
    - Looks for `basis_1` in working directory
-   - Copies `basis_1` → `GENBAS` in SECTION1 scratch
+   - Copies `basis_1` → `GENBAS` in SECTION1 scratch directory
 2. External processes SECTION2:
-   - Detects `basis=custom` in MINP file
+   - Detects `basis=custom` in MINP_2 file
    - Looks for `basis_2` in working directory
-   - Copies `basis_2` → `GENBAS` in SECTION2 scratch
+   - Copies `basis_2` → `GENBAS` in SECTION2 scratch directory
 
-**Section ID mapping:**
-- `!SECTION1` → `basis_1`
-- `!SECTION2` → `basis_2`
-- `!SECTION3` → `basis_3`
-- etc.
+**Section to filename mapping:**
+- `!SECTION1` → looks for `basis_1`
+- `!SECTION2` → looks for `basis_2`
+- `!SECTION3` → looks for `basis_3`
+- Default section → looks for `basis_default`
 
 #### GENBAS File Format
 
@@ -540,7 +540,7 @@ H
 ```
 ERROR: Custom basis file 'basis_1' not found!
 ```
-→ Create the missing `basis_N` file in the working directory
+→ Create the missing `basis_N` file in the working directory where N is the section number (1, 2, 3, etc.)
 
 **Invalid GENBAS format:**
 → Check MRCC output for basis set parsing errors
@@ -592,6 +592,12 @@ aug-cc-pVDZ
 ```
 
 **Result:** Composite energy with CCSD/aug-cc-pVTZ - MP2/aug-cc-pVDZ extrapolation using custom basis definitions.
+
+**Important Notes:**
+- Each section automatically looks for its corresponding numbered basis file (`basis_1`, `basis_2`, etc.)
+- The number in the filename matches the section number from `!SECTION1`, `!SECTION2`, etc.
+- If using only a default section (no `!SECTIONN`), name the file `basis_default`
+- All basis files must be in the working directory (where you run Gaussian)
 
 ---
 
