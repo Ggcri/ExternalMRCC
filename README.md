@@ -626,7 +626,7 @@ aug-cc-pVDZ
 !end
 
 !SECTION1
-energy_pattern=Total LCCSD\(T\) energy [au]:
+energy_pattern=Total LCCSD(T) energy [au]:
 basis=aug-cc-pVDZ
 calc=LCCSD(T)
 # No dens=2 → NUMERICAL gradient (parallel finite differences)
@@ -1234,7 +1234,7 @@ grep -i "energy" test.out
 energy_pattern=Total CCSD energy [au]:
 
 # CCSD(T):
-energy_pattern=Total CCSD\(T\) energy [au]:
+energy_pattern=Total CCSD(T) energy [au]:
 
 # MP2:
 energy_pattern=MP2 energy [au]:
