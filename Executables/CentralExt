@@ -1,0 +1,1083 @@
+#!/shared/apps/python/3.9.16/bin/python3.9 -u
+import os
+import sys
+import subprocess
+import threading
+import time
+
+EXEC_DIR = os.environ.get("ELECEXT_PATH", os.path.dirname(__file__))
+
+PROGRAM_MAP = {
+    'molpro': 'MolproExt',
+    'molproext': 'MolproExt',
+    'molpro_ga': 'MolproExt_GA',
+    'molpro_ga_proj': 'MolproExt_GA_proj',
+    'molpro_project': 'MolproExt_project',
+    'gaussian': 'GauExt',
+    'gau': 'GauExt',
+    'orca': 'OrcaExt',
+    'hybrid': 'HybdridExt',
+    'hybrid_mod': 'HybdridExt_with_mod',
+    'mrcc': 'MRCC_ext',
+    'mrcc_ext': 'MRCC_ext'
+}
+
+# Add path for elecext module
+PARENT_DIR = os.path.abspath(os.path.join(EXEC_DIR, '..'))
+if PARENT_DIR not in sys.path:
+    sys.path.insert(0, PARENT_DIR)
+
+
+import threading
+
+# Global lock for thread-safe iteration directory creation
+_iteration_lock = threading.Lock()
+
+def create_iteration_directory(base_dir=None, subtype=None):
+    """Create and return the path to the next iteration directory.
+
+    Thread-safe creation of iteration directories to prevent race conditions.
+    Supports subtypes for mixed gradient mode (AN for analytical, NUM for numerical).
+
+    Parameters
+    ----------
+    base_dir : str, optional
+        Base directory to create iterations in. If None, uses current directory.
+    subtype : str, optional
+        Subtype for iteration directory ('AN' for analytical, 'NUM' for numerical).
+        If None, creates standard 'Iteration_N' directory.
+
+    Returns
+    -------
+    str
+        Absolute path to the iteration directory (e.g., '/path/to/Iterations/AN_Iteration_3')
+    """
+    with _iteration_lock:  # Ensure thread-safe directory creation
+        if base_dir is None:
+            base_dir = os.getcwd()
+
+        iterations_dir = os.path.join(base_dir, "Iterations")
+
+        # Determine directory prefix based on subtype
+        if subtype:
+            prefix = f"{subtype}_Iteration_"
+        else:
+            prefix = "Iteration_"
+
+        # Create main Iterations directory if it doesn't exist
+        if not os.path.exists(iterations_dir):
+            os.makedirs(iterations_dir)
+            next_iteration = 1
+        else:
+            # Find the highest numbered iteration directory with matching prefix
+            existing_iterations = []
+            for item in os.listdir(iterations_dir):
+                if item.startswith(prefix) and os.path.isdir(os.path.join(iterations_dir, item)):
+                    try:
+                        iteration_num = int(item.split("_")[-1])  # Get last component after split
+                        existing_iterations.append(iteration_num)
+                    except (ValueError, IndexError):
+                        continue
+
+            next_iteration = max(existing_iterations, default=0) + 1
+
+        iteration_path = os.path.join(iterations_dir, f"{prefix}{next_iteration}")
+        os.makedirs(iteration_path, exist_ok=True)
+
+        # Return absolute path to prevent any relative path issues
+        abs_iteration_path = os.path.abspath(iteration_path)
+        print(f"Created iteration directory: {abs_iteration_path}")
+        if subtype:
+            print(f"INFO: This is {subtype} iteration number {next_iteration}")
+        else:
+            print(f"INFO: This is iteration number {next_iteration}")
+        return abs_iteration_path
+
+
+def run_parallel_numerical_gradient():
+    """Handle parallel numerical gradient calculation using elecext.parall"""
+    from elecext.parall import (
+        run_fake_freq_calculation,
+        parse_gradient_recipe_from_log,
+        run_energy_tasks_in_parallel,
+        assemble_full_gradient_from_force_map
+    )
+    from elecext import GauInpParser, write_output, resolve_path_with_env
+    import tempfile
+    import shutil
+    import numpy as np
+    
+    # Expected argument structure varies by program:
+    # Most: CentralExt <program> <preamble> <ending> <nprocs> <mem> <readgradpy> [parall <nthreads>] <layer> <input> <output>
+    # MRCC: CentralExt mrcc <mem> <readgradpy> <mrcc_omp> <mrcc_mpi> <preamble> <ending> [parall <nthreads>] <layer> <input> <output>
+    if len(sys.argv) < 12:
+        print('Usage for parallel mode: CentralExt <program> [args...] parall <nthreads> <layer> <input> <output>')
+        sys.exit(1)
+    
+    program_key = sys.argv[1].lower()
+    
+    # Find parall keyword position
+    parall_pos = None
+    for i, arg in enumerate(sys.argv):
+        if arg.lower() == 'parall':
+            parall_pos = i
+            break
+    
+    if parall_pos is None:
+        return False
+    
+    # Extract parallel arguments
+    try:
+        nthreads = int(sys.argv[parall_pos + 1])
+        if nthreads <= 0:
+            print('Error: Number of threads must be positive')
+            sys.exit(1)
+    except ValueError:
+        print('Error: Number of threads must be an integer')
+        sys.exit(1)
+    
+    # Extract final arguments 
+    layer = sys.argv[parall_pos + 2]
+    gau_input = sys.argv[parall_pos + 3]
+    gau_output = sys.argv[parall_pos + 4]
+    
+    # Parse program-specific arguments based on the program type
+    if program_key in ['mrcc', 'mrcc_ext']:
+        # MRCC format: mem readgradpy mrcc_omp_procs mrcc_mpi_procs mrcc_preamble_file mrcc_end_file layer input output
+        if parall_pos < 8:
+            print('Error: Not enough arguments for MRCC parallel mode')
+            sys.exit(1)
+        mem = sys.argv[2]
+        readgradpy = sys.argv[3]
+        mrcc_omp_procs = sys.argv[4]
+        mrcc_mpi_procs = sys.argv[5]
+        preamble_file = resolve_path_with_env(sys.argv[6])
+        ending_file = resolve_path_with_env(sys.argv[7])
+        # Create args for MRCC_ext (without parall keyword, force READ for energy-only)
+        program_args = [mem, 'READ', mrcc_omp_procs, mrcc_mpi_procs, preamble_file, ending_file, layer]
+    else:
+        # Standard format: preamble ending nprocs mem readgradpy layer input output
+        if parall_pos < 7:
+            print('Error: Not enough arguments for standard parallel mode')
+            sys.exit(1)
+        preamble_file = resolve_path_with_env(sys.argv[2])
+        ending_file = resolve_path_with_env(sys.argv[3])
+        nprocs = sys.argv[4]
+        mem = sys.argv[5]
+        readgradpy = sys.argv[6]
+        # Create args for standard executables (without parall keyword, force READ for energy-only)
+        program_args = [preamble_file, ending_file, nprocs, mem, 'READ', layer]
+    
+    # Parse Gaussian input
+    geom, atoms, spin, charge, opt_flag = GauInpParser(gau_input)
+
+    # Read original input file to get atomic numbers
+    with open(gau_input, 'r') as f:
+        content = f.readlines()
+
+    atomic_numbers = []
+    for line in content[1:atoms+1]:
+        parts = line.split()
+        atomic_numbers.append(int(parts[0]))
+
+    # ============================================================================
+    # MIXED MODE DETECTION: Check for analytical gradient sections (dens=2)
+    # ============================================================================
+    from elecext import (
+        analyze_sections_for_gradient_mode,
+        split_preamble_by_gradient_type,
+        parse_scheme_and_formula,
+        combine_mixed_gradients,
+        combine_mixed_energies
+    )
+
+    print("\n" + "="*80)
+    print("CHECKING FOR MIXED ANALYTICAL/NUMERICAL GRADIENT MODE")
+    print("="*80)
+
+    # Analyze preamble file for dens=2 keyword
+    section_metadata = analyze_sections_for_gradient_mode(preamble_file, program=program_key)
+
+    # Determine if we're in mixed mode
+    has_analytical = any(meta['has_analytical'] for meta in section_metadata.values())
+    has_numerical = any(not meta['has_analytical'] for meta in section_metadata.values())
+    is_gradient_calculation = (opt_flag == 1)
+
+    # Mixed mode is activated when:
+    # 1. Gradient calculation requested (opt_flag=1)
+    # 2. At least one section has dens=2 (analytical)
+    # 3. At least one section doesn't have dens=2 (numerical)
+    mixed_mode = is_gradient_calculation and has_analytical and has_numerical
+
+    # Also handle "all analytical" or "all numerical" cases
+    all_analytical_mode = is_gradient_calculation and has_analytical and not has_numerical
+    all_numerical_mode = is_gradient_calculation and not has_analytical and has_numerical
+
+    print(f"\nMode Detection Results:")
+    print(f"  OptFlag (gradient requested): {opt_flag}")
+    print(f"  Has analytical sections: {has_analytical}")
+    print(f"  Has numerical sections: {has_numerical}")
+    print(f"  Mixed mode activated: {mixed_mode}")
+    print(f"  All analytical mode: {all_analytical_mode}")
+    print(f"  All numerical mode: {all_numerical_mode}")
+    print("="*80 + "\n")
+
+    # Store original working directory
+    original_working_dir = os.getcwd()
+
+    # Create temporary directory for frequency calculation
+    with tempfile.TemporaryDirectory() as freq_workdir:
+        # Run fake frequency calculation to get displacement info
+        log_file = run_fake_freq_calculation(geom, charge, spin, freq_workdir)
+
+        # Parse gradient recipe from log (now includes input orientation and original coordinates)
+        result = parse_gradient_recipe_from_log(log_file)
+        geometries_to_calculate, geometries_in_bohr, explicit_gradient_recipe, reference_gradient, displacement_info, input_orientation, original_coordinates = result
+        
+        # Preserve fake_freq.log for debugging
+        fake_freq_dir = "FAKE_FREQ"
+        if not os.path.exists(fake_freq_dir):
+            os.makedirs(fake_freq_dir)
+        
+        # Find next available index for fake_freq_N.log
+        index = 1
+        while os.path.exists(os.path.join(fake_freq_dir, f"fake_freq_{index}.log")):
+            index += 1
+        
+        preserved_log_path = os.path.join(fake_freq_dir, f"fake_freq_{index}.log")
+        import shutil
+        shutil.copy2(log_file, preserved_log_path)
+        print(f"DEBUG: Preserved fake frequency log as {preserved_log_path}")
+        
+        # Validate that displaced geometries have correct atom count
+        print(f"DEBUG: Expected atoms: {atoms}")
+        for task_id, geometry in geometries_to_calculate.items():
+            actual_atoms = len(geometry)
+            print(f"DEBUG: Task {task_id}: {actual_atoms} atoms")
+            if actual_atoms != atoms:
+                print(f"ERROR: Geometry for task {task_id} has {actual_atoms} atoms, expected {atoms}")
+                print(f"ERROR: This indicates a parsing issue in parse_gradient_recipe_from_log")
+                sys.exit(1)
+        print(f"DEBUG: All geometries have correct atom count ({atoms})")
+
+        # ========================================================================
+        # MIXED MODE BRANCHING: Handle analytical and/or numerical workflows
+        # ========================================================================
+
+        if mixed_mode or all_analytical_mode:
+            print("\n" + "="*80)
+            print("MIXED/ANALYTICAL MODE: Splitting preamble and running workflows")
+            print("="*80)
+
+            # Parse scheme and formula from preamble
+            operations, formula = parse_scheme_and_formula(preamble_file, program=program_key)
+            print(f"Parsed {len(operations)} operations from scheme")
+            if formula:
+                print(f"Custom formula detected: {formula}")
+
+            # Split preamble file
+            split_output_dir = os.path.join(original_working_dir, "SPLIT_PREAMBLES")
+            analytical_preamble, numerical_preamble, analytical_indices, numerical_indices = \
+                split_preamble_by_gradient_type(preamble_file, section_metadata, split_output_dir, program=program_key)
+
+            print(f"\nSplit preambles created:")
+            print(f"  Analytical: {analytical_preamble}")
+            print(f"  Numerical: {numerical_preamble}")
+            print(f"  Analytical indices: {analytical_indices}")
+            print(f"  Numerical indices: {numerical_indices}")
+
+            # Initialize result containers
+            analytical_gradients = []
+            analytical_energies = []
+            numerical_gradients = []
+            numerical_energies = []
+
+            # ====================================================================
+            # ANALYTICAL GRADIENT WORKFLOW
+            # ====================================================================
+            if len(analytical_indices) > 0:
+                print("\n" + "="*80)
+                print(f"RUNNING ANALYTICAL GRADIENT WORKFLOW ({len(analytical_indices)} sections)")
+                print("="*80)
+
+                # Create AN iteration directory
+                an_iteration_dir = create_iteration_directory(original_working_dir, subtype='AN')
+
+                # Adjust resources for analytical calculations
+                # Memory: multiply by (1 + nthreads) to account for parallel overhead
+                # Threads: add nthreads to base threads
+                if program_key in ['mrcc', 'mrcc_ext']:
+                    # Extract base memory value (e.g., "16GB" -> 16)
+                    import re
+                    mem_match = re.search(r'(\d+)', mem)
+                    base_mem_value = int(mem_match.group(1)) if mem_match else 1
+                    mem_unit = mem.replace(str(base_mem_value), '') if mem_match else 'GB'
+
+                    adjusted_mem = f"{base_mem_value * (1 + nthreads)}{mem_unit}"
+                    adjusted_omp = str(int(mrcc_omp_procs) + nthreads)
+
+                    print(f"Resource adjustment for analytical:")
+                    print(f"  Original: mem={mem}, omp={mrcc_omp_procs}")
+                    print(f"  Adjusted: mem={adjusted_mem}, omp={adjusted_omp}")
+
+                    # Build command for analytical gradient (with OptFlag=1 forced)
+                    analytical_args = [
+                        adjusted_mem, 'READ', adjusted_omp, mrcc_mpi_procs,
+                        analytical_preamble, ending_file, layer
+                    ]
+                else:
+                    # Standard programs
+                    mem_match = re.search(r'(\d+)', mem)
+                    base_mem_value = int(mem_match.group(1)) if mem_match else 1
+                    mem_unit = mem.replace(str(base_mem_value), '') if mem_match else 'GB'
+
+                    adjusted_mem = f"{base_mem_value * (1 + nthreads)}{mem_unit}"
+                    adjusted_nprocs = str(int(nprocs) + nthreads)
+
+                    print(f"Resource adjustment for analytical:")
+                    print(f"  Original: mem={mem}, nprocs={nprocs}")
+                    print(f"  Adjusted: mem={adjusted_mem}, nprocs={adjusted_nprocs}")
+
+                    analytical_args = [
+                        analytical_preamble, ending_file, adjusted_nprocs,
+                        adjusted_mem, 'READ', layer
+                    ]
+
+                # Run analytical gradient calculation using external program
+                print(f"INFO: Running analytical gradient calculation with {len(analytical_indices)} section(s)")
+
+                # Read analytical preamble content
+                with open(analytical_preamble, 'r') as f:
+                    analytical_preamble_content = f.read()
+                with open(ending_file, 'r') as f:
+                    analytical_ending_content = f.read()
+
+                # Determine external script
+                script = PROGRAM_MAP.get(program_key)
+                if not script:
+                    guess = program_key
+                    if not guess.endswith('Ext'):
+                        guess_ext = guess + 'Ext'
+                        if os.path.exists(os.path.join(EXEC_DIR, guess_ext)):
+                            script = guess_ext
+                    if not script and os.path.exists(os.path.join(EXEC_DIR, guess)):
+                        script = guess
+                if not script:
+                    raise ValueError(f"Unknown program '{program_key}'")
+                script_path = os.path.join(EXEC_DIR, script)
+
+                # Create task directory for analytical calculation
+                task_dir = os.path.join(an_iteration_dir, "task_analytical_central")
+                os.makedirs(task_dir, exist_ok=True)
+
+                # Write preamble and ending files
+                task_preamble = os.path.join(task_dir, os.path.basename(analytical_preamble))
+                task_ending = os.path.join(task_dir, os.path.basename(ending_file))
+                with open(task_preamble, 'w') as f:
+                    f.write(analytical_preamble_content)
+                with open(task_ending, 'w') as f:
+                    f.write(analytical_ending_content)
+
+                # Copy GENBAS file if MRCC
+                if program_key.lower() in ['mrcc', 'mrcc_ext']:
+                    genbas_src = os.path.join(original_working_dir, 'GENBAS')
+                    if os.path.exists(genbas_src):
+                        genbas_dst = os.path.join(task_dir, 'GENBAS')
+                        shutil.copy2(genbas_src, genbas_dst)
+                        print(f"ANALYTICAL: Copied GENBAS file to {genbas_dst}")
+
+                # Write central geometry to input file with OptFlag=1 (gradient mode)
+                # GauInpParser returns geometry as a list of strings: ["C 0.0 0.0 0.0", ...]
+                # Parse each string and extract coordinates
+                geometry_bohr = []
+                for idx, atom_str in enumerate(geom):
+                    # Split the string: "C 0.0 0.0 0.0" -> ["C", "0.0", "0.0", "0.0"]
+                    parts = atom_str.split()
+                    if len(parts) >= 4:  # symbol + 3 coordinates
+                        # Extract x, y, z (skip the symbol at index 0)
+                        coords = [float(parts[i]) for i in range(1, 4)]
+                        geometry_bohr.append(coords)
+                    else:
+                        raise ValueError(f"Invalid atom format at index {idx}: {atom_str}")
+
+                if len(geometry_bohr) != atoms:
+                    raise ValueError(f"Geometry mismatch: expected {atoms} atoms, got {len(geometry_bohr)}")
+
+                geometry_bohr = np.array(geometry_bohr)
+                print(f"ANALYTICAL: Parsed {len(geometry_bohr)} atoms from geometry")
+                input_file = os.path.join(task_dir, "Gau-analytical.EIn")
+                with open(input_file, 'w') as f:
+                    f.write(f"{atoms}  1  {charge}  {spin}\n")  # OptFlag=1 for gradient
+                    for i in range(atoms):
+                        atomic_num = atomic_numbers[i]
+                        f.write(f"{atomic_num}  {geometry_bohr[i][0]:.12f}  {geometry_bohr[i][1]:.12f}  {geometry_bohr[i][2]:.12f}\n")
+
+                print(f"ANALYTICAL: Wrote input file with OptFlag=1 to {input_file}")
+
+                # Check test mode
+                test_mode = os.environ.get('EXT_TEST_MODE', '0') == '1'
+
+                if test_mode:
+                    print(f"ANALYTICAL: TEST MODE - Creating fake analytical gradient output")
+
+                    # Parse scheme from the analytical preamble to get coefficients
+                    an_operations, an_formula = parse_scheme_and_formula(task_preamble, program=program_key)
+                    print(f"ANALYTICAL: TEST MODE - Parsed operations from preamble: {an_operations}")
+
+                    # Generate fake analytical gradient with realistic values
+                    output_file = os.path.join(task_dir, "gradient_output.dat")
+
+                    # Create fake gradient based on number of analytical sections
+                    base_fake_energy = -76.234567890  # Base analytical energy
+                    fake_gradient = np.random.randn(atoms, 3) * 0.001  # Small random gradients
+
+                    # Apply coefficients to simulate what MRCC_ext would do
+                    # For each analytical section, apply its corresponding coefficient
+                    for i, idx in enumerate(analytical_indices):
+                        # Find the coefficient for this section index
+                        # The operations list contains coefficients in order
+                        if i < len(an_operations) and an_operations[i][0] == 'coeff':
+                            coeff = an_operations[i][1]
+                        else:
+                            coeff = 1.0  # Default if not found
+
+                        # Apply coefficient to energy (simulating MRCC_ext behavior)
+                        weighted_energy = base_fake_energy * coeff
+                        weighted_gradient = fake_gradient * coeff
+
+                        print(f"ANALYTICAL: TEST MODE - Section {idx}: coefficient={coeff}, weighted_energy={weighted_energy}")
+
+                        # Store the weighted results
+                        analytical_energies.append(weighted_energy)
+                        analytical_gradients.append(weighted_gradient.copy())
+
+                    print(f"ANALYTICAL: TEST MODE - Generated {len(analytical_indices)} analytical gradient(s)")
+                    print(f"ANALYTICAL: Energies stored: {analytical_energies}")
+
+                else:
+                    # Real execution - call external program
+                    output_file = os.path.join(task_dir, "gradient_output.dat")
+
+                    # Build arguments for external program
+                    input_name = os.path.basename(input_file)
+                    output_name = os.path.basename(output_file)
+
+                    if program_key in ['mrcc', 'mrcc_ext']:
+                        # MRCC format with adjusted resources
+                        exec_args = [
+                            adjusted_mem,
+                            'READ',
+                            adjusted_omp,
+                            mrcc_mpi_procs,
+                            os.path.basename(task_preamble),
+                            os.path.basename(task_ending),
+                            layer,
+                            input_name,
+                            output_name
+                        ]
+                    else:
+                        # Standard programs
+                        exec_args = [
+                            os.path.basename(task_preamble),
+                            os.path.basename(task_ending),
+                            adjusted_nprocs,
+                            adjusted_mem,
+                            'READ',
+                            layer,
+                            input_name,
+                            output_name
+                        ]
+
+                    print(f"ANALYTICAL: Executing {script_path} with args: {exec_args}")
+                    try:
+                        result = subprocess.run([sys.executable, script_path] + exec_args,
+                                              check=True, capture_output=True, text=True, cwd=task_dir)
+                        print(f"ANALYTICAL: External program completed successfully")
+                        if result.stdout:
+                            print(f"ANALYTICAL: Output (last 200 chars): {result.stdout[-200:]}")
+                    except subprocess.CalledProcessError as e:
+                        print(f"ERROR ANALYTICAL: External program failed with exit code {e.returncode}")
+                        if e.stdout:
+                            print(f"ERROR ANALYTICAL: STDOUT:\n{e.stdout}")
+                        if e.stderr:
+                            print(f"ERROR ANALYTICAL: STDERR:\n{e.stderr}")
+                        raise
+
+                    # Parse gradient from output file
+                    output_path = os.path.join(task_dir, output_name)
+                    if not os.path.exists(output_path):
+                        raise FileNotFoundError(f"Analytical gradient output not found: {output_path}")
+
+                    with open(output_path, 'r') as f:
+                        first_line = f.readline().strip()
+                        if not first_line:
+                            raise ValueError(f"Empty analytical output file: {output_path}")
+                        energy = float(first_line.split(',')[0])
+
+                        # Read gradient lines
+                        gradient_lines = f.readlines()
+                        if len(gradient_lines) < atoms:
+                            raise ValueError(f"Insufficient gradient lines in {output_path}: expected {atoms}, got {len(gradient_lines)}")
+
+                        gradient = np.zeros((atoms, 3))
+                        for i, line in enumerate(gradient_lines[:atoms]):
+                            parts = line.split()
+                            if len(parts) < 3:
+                                raise ValueError(f"Invalid gradient line format in {output_path}: {line}")
+                            gradient[i] = [float(parts[0]), float(parts[1]), float(parts[2])]
+
+                    # Store results for each analytical section
+                    for idx in analytical_indices:
+                        analytical_gradients.append(gradient.copy())
+                        analytical_energies.append(energy)
+
+                    print(f"ANALYTICAL: Parsed {len(analytical_indices)} gradient(s) from output")
+                    print(f"ANALYTICAL: Energy = {energy}, Gradient shape = {gradient.shape}")
+
+            # ====================================================================
+            # NUMERICAL GRADIENT WORKFLOW
+            # ====================================================================
+            if len(numerical_indices) > 0:
+                print("\n" + "="*80)
+                print(f"RUNNING NUMERICAL GRADIENT WORKFLOW ({len(numerical_indices)} sections)")
+                print("="*80)
+
+                # Create NUM iteration directory
+                num_iteration_dir = create_iteration_directory(original_working_dir, subtype='NUM')
+
+                # Use numerical preamble for this workflow
+                preamble_file_for_numerical = numerical_preamble
+                ending_file_for_numerical = ending_file
+
+                # Set iteration_dir for the workflow below
+                iteration_dir = num_iteration_dir
+
+                # Run standard numerical gradient workflow with split preamble
+                print(f"INFO: Numerical gradient using preamble: {preamble_file_for_numerical}")
+
+            else:
+                # No numerical sections - skip numerical workflow
+                print("\nNo numerical sections detected - skipping numerical gradient workflow")
+                iteration_dir = an_iteration_dir  # Use analytical iteration dir
+                preamble_file_for_numerical = None
+                ending_file_for_numerical = None
+
+        else:
+            # Standard numerical-only mode (original behavior)
+            print("\n" + "="*80)
+            print("STANDARD NUMERICAL GRADIENT MODE (no dens=2 detected)")
+            print("="*80)
+            # Create iteration directory for this run (pass base dir to prevent nested creation)
+            iteration_dir = create_iteration_directory(original_working_dir)
+            preamble_file_for_numerical = preamble_file
+            ending_file_for_numerical = ending_file
+
+        # ========================================================================
+        # NUMERICAL WORKFLOW EXECUTION (for mixed mode or standard mode)
+        # ========================================================================
+        # Only run if we have numerical sections or we're in standard mode
+        if (mixed_mode or all_analytical_mode) and preamble_file_for_numerical is None:
+            # Skip numerical workflow - no numerical sections
+            numerical_gradient_result = None
+            numerical_energy_result = None
+        else:
+            # Run numerical workflow
+            # Use the appropriate preamble (either numerical split or original)
+            active_preamble = preamble_file_for_numerical if preamble_file_for_numerical else preamble_file
+            active_ending = ending_file_for_numerical if ending_file_for_numerical else ending_file
+        
+            # Extract iteration number for logging
+            # Handle both "Iteration_N" and "NUM_Iteration_N" formats
+            iteration_num = int(os.path.basename(iteration_dir).split('_')[-1])
+            print(f"INFO: Running numerical gradient calculation in iteration {iteration_num}")
+
+            # Read preamble and ending file contents into memory (use active files for numerical)
+            with open(active_preamble, 'r') as f:
+                preamble_content = f.read()
+            with open(active_ending, 'r') as f:
+                ending_content = f.read()
+
+            # Create hooks for energy calculations (indented for numerical workflow)
+            def create_hooks(program_key, program_args, atomic_numbers, preamble_file, ending_file, iteration_dir):
+                script = PROGRAM_MAP.get(program_key)
+                if not script:
+                    # try guessing by name
+                    guess = program_key
+                    if not guess.endswith('Ext'):
+                        guess_ext = guess + 'Ext'
+                        if os.path.exists(os.path.join(EXEC_DIR, guess_ext)):
+                            script = guess_ext
+                    if not script and os.path.exists(os.path.join(EXEC_DIR, guess)):
+                        script = guess
+
+                if not script:
+                    raise ValueError(f"Unknown program '{program_key}'")
+
+                script_path = os.path.join(EXEC_DIR, script)
+
+                def write_input(task_id, geometry_angstrom, step_info):
+                    # Create temporary directory for this task within the iteration directory
+                    # Use absolute path to avoid issues with changing working directory
+                    task_dir = os.path.abspath(os.path.join(iteration_dir, f"task_{task_id}"))
+                    # Thread-safe directory creation
+                    try:
+                        os.makedirs(task_dir, exist_ok=True)
+                    except OSError as e:
+                        # Handle potential race condition where directory was created by another thread
+                        if not os.path.exists(task_dir):
+                            raise e
+
+                    # Write preamble and ending files to task directory using stored content
+                    task_preamble = os.path.join(task_dir, os.path.basename(preamble_file))
+                    task_ending = os.path.join(task_dir, os.path.basename(ending_file))
+                    with open(task_preamble, 'w') as f:
+                        f.write(preamble_content)
+                    with open(task_ending, 'w') as f:
+                        f.write(ending_content)
+
+                    # Check if this is an MRCC calculation and copy GENBAS file if present
+                    if program_key.lower() in ['mrcc', 'mrcc_ext']:
+                        genbas_src = os.path.join(original_working_dir, 'GENBAS')
+                        if os.path.exists(genbas_src):
+                            genbas_dst = os.path.join(task_dir, 'GENBAS')
+                            import shutil
+                            try:
+                                shutil.copy2(genbas_src, genbas_dst)
+                                print(f"MRCC SETUP: Copied GENBAS file from {genbas_src} to {genbas_dst}")
+                            except Exception as e:
+                                print(f"WARNING: Failed to copy GENBAS file for task {task_id}: {e}")
+                        else:
+                            print(f"MRCC SETUP: No GENBAS file found in {original_working_dir} for task {task_id}")
+
+                    # Convert geometry from Angstrom back to Bohr for .EIn file (standard convention)
+                    # .EIn files should always be in Bohr so each program knows the input units
+                    ANGSTROM_TO_BOHR = 1.0 / 0.529177210903
+                    geometry_bohr = geometry_angstrom * ANGSTROM_TO_BOHR
+
+                    # Write displaced geometry to input file in BOHR (standard convention)
+                    input_file = os.path.join(task_dir, f"Gau-{task_id}.EIn")
+                    with open(input_file, 'w') as f:
+                        # Set OptFlag to 0 for energy-only calculations
+                        f.write(f"{len(geometry_bohr)}  0  {charge}  {spin}\n")
+                        for i, coord in enumerate(geometry_bohr):
+                            # Handle case where geometry has more atoms than original input
+                            if i < len(atomic_numbers):
+                                atomic_num = atomic_numbers[i]
+                            else:
+                                atomic_num = 1  # Assume additional atoms are hydrogens
+                            f.write(f"{atomic_num}  {coord[0]:.12f}  {coord[1]:.12f}  {coord[2]:.12f}\n")
+
+                    print(f"UNIT CONVERSION: Task '{task_id}' - Wrote .EIn file in Bohr")
+                    print(f"  First atom: Angstrom = {geometry_angstrom[0]}, Bohr = {geometry_bohr[0]}")
+
+                    return input_file
+
+                def run_calculation(input_file):
+                    task_dir = os.path.dirname(input_file)
+                    output_file = os.path.join(task_dir, "energy_output.dat")  # Standardized name
+                    thread_id = threading.get_ident()
+                    task_name = os.path.basename(task_dir).replace('task_', '')
+
+                    print(f"THREAD-{thread_id}: Starting execution for task '{task_name}'")
+                    print(f"THREAD-{thread_id}: Task directory: {task_dir}")
+                    print(f"THREAD-{thread_id}: Input file: {input_file}")
+
+                    # Verify task directory exists
+                    if not os.path.exists(task_dir):
+                        print(f"ERROR THREAD-{thread_id}: Task directory not found: {task_dir}")
+                        raise FileNotFoundError(f"Task directory not found: {task_dir}")
+
+                    # Store original directory for thread safety logging
+                    original_cwd = os.getcwd()
+                    print(f"THREAD-{thread_id}: Original working directory: {original_cwd}")
+
+                    try:
+                        # Check if we're in test mode
+                        test_mode = os.environ.get('EXT_TEST_MODE', '0') == '1'
+                        print(f"THREAD-{thread_id}: Test mode: {test_mode}")
+
+                        if test_mode:
+                            # In test mode, create fake output file with realistic energies
+                            # Extract task ID from directory name for reproducible fake energies
+                            task_id = os.path.basename(task_dir).replace('task_', '')
+
+                            # Create realistic energies that will give meaningful gradients
+                            central_energy = -76.123456789  # Base energy for H2O
+
+                            if task_id == "central":
+                                fake_energy = central_energy
+                            elif task_id == "atom_1_ixyz_3_up":
+                                fake_energy = central_energy + 0.0001  # Higher energy for O Z up
+                            elif task_id == "atom_1_ixyz_3_down":
+                                fake_energy = central_energy + 0.0002  # Even higher for O Z down
+                            elif task_id == "atom_2_ixyz_2_up":
+                                fake_energy = central_energy + 0.00005  # H Y up
+                            elif task_id == "atom_2_ixyz_2_down":
+                                fake_energy = central_energy + 0.00015  # H Y down
+                            elif task_id == "atom_2_ixyz_3_up":
+                                fake_energy = central_energy + 0.00008  # H Z up
+                            elif task_id == "atom_2_ixyz_3_down":
+                                fake_energy = central_energy + 0.00012  # H Z down
+                            else:
+                                fake_energy = central_energy + 0.0001  # Default
+
+                            # Write output file with the full path since we're already in the task directory
+                            with open(output_file, 'w') as f:
+                                f.write(f"{fake_energy}, 0.0, 0.0, 0.0\n")
+
+                            print(f"THREAD-{thread_id}: TEST MODE: Created fake output for task {task_name} with energy {fake_energy}")
+                            # Return absolute path to ensure read_energy can find it
+                            abs_output = os.path.abspath(output_file)
+                            print(f"THREAD-{thread_id}: TEST MODE: Output file created at {abs_output}")
+                            return abs_output
+                        else:
+                            # Normal execution
+                            # Prepare arguments for single-point energy calculation
+                            # Use local file names since we're in the task directory
+                            task_preamble_name = os.path.basename(preamble_file)
+                            task_ending_name = os.path.basename(ending_file)
+                            input_name = os.path.basename(input_file)
+                            output_name = os.path.basename(output_file)
+
+                            # Build arguments based on program type
+                            if program_key in ['mrcc', 'mrcc_ext']:
+                                # MRCC expects: mem readgradpy omp mpi preamble ending layer input output
+                                # Build correct args without parall/nthreads
+                                energy_args = [
+                                    program_args[0],     # mem
+                                    program_args[1],     # 'READ' (forced for energy)
+                                    program_args[2],     # omp
+                                    program_args[3],     # mpi
+                                    task_preamble_name,  # local preamble
+                                    task_ending_name,    # local ending
+                                    program_args[6],     # layer
+                                    input_name,          # local input
+                                    "energy_output.dat"  # standardized output
+                                ]
+                            else:
+                                # Standard programs: preamble ending nprocs mem readgradpy layer input output
+                                energy_args = [
+                                    task_preamble_name,
+                                    task_ending_name,
+                                    program_args[2],     # nprocs
+                                    program_args[3],     # mem
+                                    program_args[4],     # readgradpy ('READ')
+                                    program_args[5],     # layer
+                                    input_name,
+                                    "energy_output.dat"  # standardized output
+                                ]
+
+                            print(f"THREAD-{thread_id}: Executing command: {sys.executable} {script_path} {' '.join(energy_args)}")
+                            print(f"THREAD-{thread_id}: Working directory for subprocess: {task_dir}")
+                            try:
+                                result = subprocess.run([sys.executable, script_path] + energy_args,
+                                                       check=True, capture_output=True, text=True, cwd=task_dir)
+                                print(f"THREAD-{thread_id}: Subprocess completed successfully")
+                                if result.stdout:
+                                    print(f"THREAD-{thread_id}: Subprocess stdout (last 200 chars): {result.stdout[-200:]}")
+                            except subprocess.CalledProcessError as e:
+                                print(f"ERROR THREAD-{thread_id}: Subprocess failed with exit code {e.returncode}")
+                                print(f"ERROR THREAD-{thread_id}: Command: {e.cmd}")
+                                if e.stdout:
+                                    print(f"ERROR THREAD-{thread_id}: STDOUT:\n{e.stdout}")
+                                if e.stderr:
+                                    print(f"ERROR THREAD-{thread_id}: STDERR:\n{e.stderr}")
+                                raise
+
+                            # Return absolute path to ensure read_energy can find it
+                            abs_output = os.path.abspath(output_file)
+                            print(f"THREAD-{thread_id}: Output file path: {abs_output}")
+                            return abs_output
+                    except Exception as e:
+                        print(f"ERROR THREAD-{thread_id}: Exception during task execution: {e}")
+                        print(f"THREAD-{thread_id}: Task: {task_name}, Directory: {task_dir}")
+                        raise
+                    finally:
+                        # Always return to the original working directory to prevent nested iteration creation
+                        current_cwd = os.getcwd()
+                        if current_cwd != original_cwd:
+                            print(f"THREAD-{thread_id}: Changing back from {current_cwd} to {original_cwd}")
+                            os.chdir(original_cwd)
+                        else:
+                            print(f"THREAD-{thread_id}: Already in original directory {original_cwd}")
+
+                def read_energy(output_file):
+                    # Always look for standardized filename first
+                    task_dir = os.path.dirname(output_file)
+                    standardized_output = os.path.join(task_dir, "energy_output.dat")
+
+                    if os.path.exists(standardized_output):
+                        target_file = standardized_output
+                    else:
+                        target_file = output_file  # Fallback
+
+                    abs_target_file = os.path.abspath(target_file)
+                    if not os.path.exists(abs_target_file):
+                        raise FileNotFoundError(f"Energy output file not found: {abs_target_file}")
+
+                    with open(abs_target_file, 'r') as f:
+                        first_line = f.readline().strip()
+                        if not first_line:
+                            raise ValueError(f"Empty energy output file: {abs_target_file}")
+                        parts = first_line.split(',')
+                        if len(parts) < 1:
+                            raise ValueError(f"Invalid energy format in {abs_target_file}: {first_line}")
+                        return float(parts[0])
+
+                return {
+                    'write_input': write_input,
+                    'run': run_calculation,
+                    'read_energy': read_energy
+                }
+
+            # Run parallel energy calculations
+            hooks = create_hooks(program_key, program_args, atomic_numbers, preamble_file, ending_file, iteration_dir)
+            print(f"Running parallel energy calculations with {nthreads} threads")
+            print(f"TASK SUBMISSION: Submitting {len(geometries_to_calculate)} tasks")
+            for task_id in geometries_to_calculate.keys():
+                print(f"  - Task: {task_id}")
+
+            calculated_energies = run_energy_tasks_in_parallel(
+                geometries_to_calculate,
+                displacement_info,
+                hooks,
+                max_workers=nthreads
+            )
+
+            print(f"TASK COMPLETION: Received {len(calculated_energies)} results")
+            for task_id, energy in calculated_energies.items():
+                print(f"  - Task {task_id}: Energy = {energy}")
+
+            # Assemble full gradient from calculated energies
+            # Handle case where reference gradient might be empty (test mode)
+            if reference_gradient.size == 0:
+                reference_gradient = np.zeros((atoms, 3))
+
+            numerical_gradient_result, numerical_energy_result = assemble_full_gradient_from_force_map(
+                explicit_gradient_recipe,
+                calculated_energies,
+                geometries_in_bohr,
+                atoms,
+                reference_gradient,
+                preserved_log_path,  # Pass the fake frequency log for advanced symmetry analysis
+                original_coordinates_bohr=original_coordinates  # Pass original coordinates for rotation detection
+            )
+
+            print(f"NUMERICAL WORKFLOW: Gradient shape: {numerical_gradient_result.shape}")
+            print(f"NUMERICAL WORKFLOW: Central energy: {numerical_energy_result}")
+
+            # Store results for combination (if mixed mode)
+            if mixed_mode or all_analytical_mode:
+                # Store numerical results for later combination
+                numerical_gradients.append(numerical_gradient_result)
+                numerical_energies.append(numerical_energy_result)
+                print(f"NUMERICAL WORKFLOW: Results stored for combination")
+
+        # ========================================================================
+        # FINAL COMBINATION AND OUTPUT (for mixed mode)
+        # ========================================================================
+        # Return to original working directory before writing final output
+        os.chdir(original_working_dir)
+
+        if mixed_mode or all_analytical_mode:
+            print("\n" + "="*80)
+            print("COMBINING ANALYTICAL AND NUMERICAL RESULTS")
+            print("="*80)
+
+            # Parse scheme and formula (already done above, but included here for clarity)
+            # operations and formula are already available from earlier parsing
+
+            print(f"Analytical gradients: {len(analytical_gradients)}")
+            print(f"Numerical gradients: {len(numerical_gradients)}")
+            print(f"Analytical energies: {len(analytical_energies)}")
+            print(f"Numerical energies: {len(numerical_energies)}")
+
+            # In mixed mode, coefficients have already been applied by MRCC_ext
+            # when processing the individual preambles with their reduced schemes.
+            # Therefore, we need to use unit coefficients for the final combination
+            # to avoid double-counting the coefficients.
+            if mixed_mode and len(analytical_gradients) > 0 and len(numerical_gradients) > 0:
+                # Create operations with unit coefficients for simple summation
+                num_total_sections = len(analytical_indices) + len(numerical_indices)
+                operations_for_combination = [('coeff', 1.0) for _ in range(num_total_sections)]
+                print(f"\nMIXED MODE: Using unit coefficients for final combination (coefficients already applied)")
+                print(f"  Original operations: {operations}")
+                print(f"  Combination operations: {operations_for_combination}")
+            else:
+                # All-analytical or all-numerical mode: use original operations
+                operations_for_combination = operations
+                print(f"\nSINGLE MODE: Using original operations: {operations}")
+
+            # Combine gradients
+            if len(analytical_gradients) > 0 and len(numerical_gradients) > 0:
+                # True mixed mode - combine both
+                final_gradient = combine_mixed_gradients(
+                    analytical_gradients, numerical_gradients,
+                    analytical_indices, numerical_indices,
+                    operations_for_combination, formula
+                )
+                final_energy = combine_mixed_energies(
+                    analytical_energies, numerical_energies,
+                    analytical_indices, numerical_indices,
+                    operations_for_combination, formula
+                )
+            elif len(analytical_gradients) > 0:
+                # All analytical mode
+                final_gradient = combine_mixed_gradients(
+                    analytical_gradients, [],
+                    analytical_indices, [],
+                    operations_for_combination, formula
+                )
+                final_energy = combine_mixed_energies(
+                    analytical_energies, [],
+                    analytical_indices, [],
+                    operations_for_combination, formula
+                )
+            elif len(numerical_gradients) > 0:
+                # All numerical mode (shouldn't happen in mixed_mode, but handle it)
+                final_gradient = combine_mixed_gradients(
+                    [], numerical_gradients,
+                    [], numerical_indices,
+                    operations_for_combination, formula
+                )
+                final_energy = combine_mixed_energies(
+                    [], numerical_energies,
+                    [], numerical_indices,
+                    operations_for_combination, formula
+                )
+            else:
+                raise RuntimeError("No gradients computed in mixed mode!")
+
+            gradient = final_gradient
+            central_energy = final_energy
+
+            print(f"\nFINAL COMBINED RESULTS:")
+            print(f"  Energy: {central_energy}")
+            print(f"  Gradient shape: {gradient.shape}")
+
+        else:
+            # Standard numerical-only mode - use numerical results directly
+            gradient = numerical_gradient_result
+            central_energy = numerical_energy_result
+
+        # Write output with energy and gradient to the original working directory
+        output_path = os.path.join(original_working_dir, gau_output)
+        print(f"\nDEBUG: Writing output to {output_path}")
+        print(f"DEBUG: Current directory: {os.getcwd()}")
+        print(f"DEBUG: Central energy: {central_energy}")
+        print(f"DEBUG: Gradient shape: {gradient.shape}")
+
+        # Verify gradient has correct dimensions
+        if gradient.shape != (atoms, 3):
+            raise ValueError(f"Gradient has incorrect shape: {gradient.shape}, expected ({atoms}, 3)")
+
+        write_output(output_path, central_energy, gradient=gradient)
+        
+        # Verify the output file was written correctly
+        if not os.path.exists(output_path):
+            raise IOError(f"Failed to write output file: {output_path}")
+        
+        # Write metadata file to track iteration used
+        if mixed_mode or all_analytical_mode:
+            # Write metadata to both AN and NUM iteration directories if they exist
+            import datetime
+            metadata_content = f"""Mode: {'Mixed' if mixed_mode else 'All Analytical'}
+Output file: {output_path}
+Final energy: {central_energy}
+Number of atoms: {atoms}
+Analytical sections: {len(analytical_indices)}
+Numerical sections: {len(numerical_indices)}
+Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+            if len(analytical_indices) > 0 and 'an_iteration_dir' in locals():
+                with open(os.path.join(an_iteration_dir, "metadata.txt"), 'w') as f:
+                    f.write(metadata_content)
+
+            if len(numerical_indices) > 0 and 'num_iteration_dir' in locals():
+                with open(os.path.join(num_iteration_dir, "metadata.txt"), 'w') as f:
+                    f.write(metadata_content)
+
+            print(f"DEBUG: Output written successfully")
+            print(f"DEBUG: File exists: {os.path.exists(output_path)}")
+            print(f"SUCCESS: Mixed mode gradient calculation completed")
+        else:
+            # Standard mode metadata
+            iteration_num = int(os.path.basename(iteration_dir).split('_')[-1])
+            metadata_path = os.path.join(iteration_dir, "metadata.txt")
+            with open(metadata_path, 'w') as f:
+                import datetime
+                f.write(f"Iteration: {iteration_num}\n")
+                f.write(f"Output file: {output_path}\n")
+                f.write(f"Central energy: {central_energy}\n")
+                f.write(f"Number of atoms: {atoms}\n")
+                f.write(f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+            print(f"DEBUG: Output written successfully")
+            print(f"DEBUG: File exists: {os.path.exists(output_path)}")
+            print(f"SUCCESS: Parallel gradient calculation completed using iteration {iteration_num}")
+        
+        # Clean up temporary task directories (optional - commented out to preserve for debugging)
+        # Uncomment the following lines if you want to clean up task directories after completion
+        # NOTE: In mixed mode, task directories are in num_iteration_dir
+        # for task_id in geometries_to_calculate:
+        #     task_dir = os.path.join(iteration_dir, f"task_{task_id}")
+        #     if os.path.exists(task_dir):
+        #         shutil.rmtree(task_dir)
+        #
+        # # Remove iteration directory if it's empty after cleanup
+        # try:
+        #     if not os.listdir(iteration_dir):
+        #         os.rmdir(iteration_dir)
+        #         # Remove Iterations directory if it becomes empty
+        #         iterations_parent = os.path.dirname(iteration_dir)
+        #         if not os.listdir(iterations_parent):
+        #             os.rmdir(iterations_parent)
+        # except OSError:
+        #     pass  # Directory not empty or other error
+
+        if mixed_mode or all_analytical_mode:
+            if len(analytical_indices) > 0 and 'an_iteration_dir' in locals():
+                print(f"Analytical workflow preserved in: {an_iteration_dir}")
+            if len(numerical_indices) > 0 and 'num_iteration_dir' in locals():
+                print(f"Numerical workflow preserved in: {num_iteration_dir}")
+        else:
+            print(f"Task directories preserved in: {iteration_dir}")
+    
+    return True
+
+
+def main():
+    if len(sys.argv) < 2:
+        print('Usage: CentralExt <Program> [arguments...]')
+        sys.exit(1)
+
+    # Check if this is a parallel execution
+    if 'parall' in [arg.lower() for arg in sys.argv]:
+        if run_parallel_numerical_gradient():
+            return
+
+    program_key = sys.argv[1].lower()
+    args = sys.argv[2:]
+
+    script = PROGRAM_MAP.get(program_key)
+
+    if not script:
+        # try guessing by name
+        guess = program_key
+        if not guess.endswith('Ext'):
+            guess_ext = guess + 'Ext'
+            if os.path.exists(os.path.join(EXEC_DIR, guess_ext)):
+                script = guess_ext
+        if not script and os.path.exists(os.path.join(EXEC_DIR, guess)):
+            script = guess
+
+    if not script:
+        print(f"Unknown program '{sys.argv[1]}'")
+        sys.exit(1)
+
+    script_path = os.path.join(EXEC_DIR, script)
+    subprocess.run([sys.executable, script_path] + args, check=True)
+
+
+if __name__ == '__main__':
+    main()

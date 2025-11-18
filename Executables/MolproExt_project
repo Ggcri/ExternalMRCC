@@ -1,0 +1,685 @@
+#!/shared/apps/python/3.9.16/bin/python3.9 -u
+# The following python script should 
+# 0. Parse the gaussian informations given as input DONE
+# 1. Take in input the gaussian geometry DONE
+# 2. Compute the distance between reacting atoms DONE
+# 3. Take from somewhere the polynomial coefficient to extrapolate the HF exchange value DONE
+# 4. Compute the MC-PDFT with exchange extrapolated DONE
+# 5. Write in output the output file in gaussian format DONE
+
+import concurrent.futures
+import sys
+import re
+import os
+import numpy as np
+import glob
+import shlex
+import subprocess
+import time
+
+# Ensure the elecext utilities can be imported when running this
+# script directly from the Executables directory.
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if PARENT_DIR not in sys.path:
+    sys.path.insert(0, PARENT_DIR)
+
+from elecext import GauInpParser, combine_gradients, write_output, Logger, parse_scheme_and_formula, evaluate_custom_formula, validate_formula_syntax, resolve_path_with_env
+
+def main():
+    # Store original working directory to ensure proper log file placement
+    original_dir = os.getcwd()
+    
+    # Check if we're running in parallel mode (called from CentralExt in task directory)
+    # Task directories have names like "task_central", "task_atom_1_ixyz_2_up", etc.
+    cwd_basename = os.path.basename(original_dir)
+    in_parallel_mode = cwd_basename.startswith("task_")
+    
+    # Create log file in the current directory (task directory when parallel)
+    # The Logger class will convert this to absolute path automatically
+    logger = Logger("external.log")
+    global print
+    print = logger.log
+    
+    # Add debug information about execution context
+    if in_parallel_mode:
+        print(f"PARALLEL MODE: Running in task directory: {original_dir}")
+    else:
+        print(f"SEQUENTIAL MODE: Running in base directory: {original_dir}")
+    # Check if the number of arguments is correct (including the script name)
+
+#  PARSE THE GAUSSIAN INFORMATIONS GIVEN AS INPUT
+    # Arguments are accessed by indexes in sys.argv
+    print(77*'*') 
+    print("STARTING PARSING")
+    preamble_file = resolve_path_with_env(sys.argv[1])
+    end_file = resolve_path_with_env(sys.argv[2])
+    nprocs = sys.argv[3]
+    mem = sys.argv[4]
+    readgradpy = sys.argv[5]
+    layer = sys.argv[6]
+    logger.header("MolproExt_project", nprocs, mem)
+    # Check if a gaussian input is already present, if not read from 
+    # command line.
+    files = glob.glob('Gau*EIn')
+    if files:
+        # Find the last created file by checking the creation time
+        last_created_file = max(files, key=os.path.getctime)
+        print(f"The last created file that starts with 'Gau' and ends with 'EIn' is: {last_created_file}")
+        GauInput = last_created_file
+    else:
+        GauInput = sys.argv[7]
+        print("No files matching the pattern were found.")
+    GauOutput = sys.argv[8]
+    print(f"Preamble file: {preamble_file}")
+    print(f"End file: {end_file}")
+    print(f"Number of processors: {nprocs}")
+    print(f"Memory allocation: {mem}")
+    print(f"Read Gradient Python Script: {readgradpy}")
+    print(f"Layer: {layer}")
+    print(f"Gaussian Input: {GauInput}")
+    print(f"Gaussian Output: {GauOutput}")
+
+    
+
+
+
+    geom,atoms,spin,charge,OptFlag = GauInpParser(GauInput, spin_offset=-1)
+    print('gaussian parsing completed')
+
+    print(77*'*')
+    print('PARSING COMPLETED')
+    print('Gaussian input geoms') 
+    #with open(GauInput,'r') as temp:
+        #for line in temp.readlines(): 
+            #parts = line.split()  # Split the string into individual components
+            #print("{:2} {:15.10f} {:15.10f} {:15.10f}".format(parts[0], float(parts[1]), float(parts[2]), float(parts[3])))
+        #print (temp.readlines())
+        #print(temp)
+
+    print(77*'*')
+
+    print('Geom processes') 
+    for line in geom:
+        parts = line.split()  # Split the string into individual components
+        print("{:2} {:15.10f} {:15.10f} {:15.10f}".format(parts[0], float(parts[1]), float(parts[2]), float(parts[3])))
+    print(77*'*')
+
+
+    create_input(preamble_file,end_file,nprocs,mem,spin,charge,geom)
+   
+    enter_time = time.time()
+    if OptFlag == 0: 
+        Energy,dipole = compute_energy(nprocs,mem)
+        logger.log_energy(Energy)
+        write_output(GauOutput,Energy,dipole)
+    elif OptFlag == 1:
+        import shutil
+        scratch_path = os.getenv('SCRATCH', '/tmp')
+        if readgradpy.upper() == "READ":
+            # Parse scheme and formula using the new advanced parsing logic
+            operations, formula = parse_scheme_and_formula(preamble_file, "molpro")
+
+            print(77*'*')
+            print(f"OPERAZIONI DELLO SCHEMA LETTE (da main): {operations}")
+            if formula:
+                print(f"FORMULA LETTA: {formula}")
+            if not operations:
+                print("ATTENZIONE: Lo schema dei coefficienti/operazioni è vuoto!")
+            else:
+                print(f"NUMERO TOTALE DI OPERAZIONI NELLO SCHEMA: {len(operations)}")
+            print(77*'*')
+
+            Energy, dipole, Gradient = compute_energy(nprocs, mem, True, "READ", operations, atoms, formula)
+            logger.log_energy(Energy)
+            logger.log_gradients(1, [Gradient])
+            print(77*'*')
+            size_gb = get_dir_size_in_gb(scratch_path)
+            print(f'Disk space used by "{scratch_path}": {size_gb:.2f} GB')
+            print('SCRATCH CLEANING...')
+            if scratch_path and os.path.isdir(scratch_path):
+                for filename in os.listdir(scratch_path):
+                    file_path = os.path.join(scratch_path, filename)
+                    try:
+                        if os.path.isfile(file_path) or os.path.islink(file_path):
+                            os.unlink(file_path)  # Rimuovi i file o i link simbolici
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)  # Rimuovi le sottodirectory e i loro contenuti
+                    except Exception as e:
+                        print(f'Failed to delete {file_path}. Reason: {e}')
+            print(77*'*')
+        else:
+            Energy,dipole,Gradient = compute_energy(nprocs,mem,True,readgradpy.upper(),operations=[],atoms=atoms,formula=None)
+            logger.log_energy(Energy)
+            logger.log_gradients(1, [Gradient])
+            print(77*'*')
+            size_gb = get_dir_size_in_gb(scratch_path)
+            print(f'Disk space used by "{scratch_path}": {size_gb:.2f} GB')
+            print('SCRATCH CLEANING...')
+            if scratch_path and os.path.isdir(scratch_path):
+                for filename in os.listdir(scratch_path):
+                    file_path = os.path.join(scratch_path, filename)
+                    try:
+                        if os.path.isfile(file_path) or os.path.islink(file_path):
+                            os.unlink(file_path)  # Rimuovi i file o i link simbolici
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)  # Rimuovi le sottodirectory e i loro contenuti
+                    except Exception as e:
+                        print(f'Failed to delete {file_path}. Reason: {e}')
+            print(77*'*')
+
+
+        print('GRADIENT COMPUTION TERMINATED')
+        write_output(GauOutput,Energy,dipole,Gradient)
+        exit_time = time.time()
+        elapsed_time = exit_time - enter_time
+        hours, remainder = divmod(elapsed_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        print(f"Time taken: {int(hours)} hours, {int(minutes)} minutes, {seconds:.2f} seconds")
+        
+
+    print(77*'*')
+    print('MOVING TO NEXT COMPUTATION')
+    print(77*'*')
+
+    
+def create_input(preamble_file,end_file,nprocs,mem,spin,charge,geom):
+     formatted_geom = "\n".join(geom)
+     geom_string=f"""geomtyp=xyz
+noorient
+bohr
+geometry={{ 
+{len(geom)}
+Title
+{formatted_geom}
+}}
+Set,spin = {spin}
+Set,charge = {charge}
+      """
+     with open(preamble_file,'r') as preamble: 
+      preamble_string =  preamble.read()
+
+     with open(end_file,'r') as ending: 
+      ending_string =  ending.read()
+
+     with open('qmolpro.com','w') as molproinput:
+      molproinput.write(preamble_string)
+      molproinput.write(geom_string)
+      molproinput.write(ending_string)
+
+# Note: parse_coefficients function removed - now using parse_scheme_and_formula from elecext
+
+
+
+def get_dir_size_in_gb(path):
+    total_size = 0
+    # Controlla se il percorso esiste, altrimenti restituisce 0
+    if not os.path.exists(path):
+        return 0.0
+
+    for dirpath, dirnames, filenames in os.walk(path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # Aggiungi la dimensione del file solo se non è un link simbolico
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+    return total_size / (1024 * 1024 * 1024) # Converte in GB
+
+
+#  COMPUTE THE FINAL ENERGY
+def compute_energy(nprocs,mem,OptFlag=False,readgradpy='NONE',operations=[],atoms=None,formula=None): 
+    import os
+    import sys
+    import random
+    import shutil
+
+    def create_unique_molpro_dir():
+        """Crea una directory molpro_tmp_randomNumber con un nome univoco."""
+        base_name = "molpro_tmp_"
+        while True:
+            random_number = random.randint(10000, 99999) # Genera un numero a 5 cifre
+            dir_name = f"{base_name}{random_number}"
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+                print(f"Creata directory univoca: {dir_name}")
+                return dir_name
+            else:
+                print(f"Directory {dir_name} esistente, provo con un altro numero.")
+
+
+    last_gradients = []
+    dipole = [0.0, 0.0, 0.0]
+    nprocs=int(nprocs)
+    
+    # Parse memory - handle units like "1GB" or just "1"
+    if isinstance(mem, str) and mem.upper().endswith('GB'):
+        mem = int(mem[:-2])  # Remove 'GB' suffix
+    else:
+        mem = int(mem)
+    
+    # reserve some memory for the system (i.e. 2 GB for buffer I/O))
+    mem=int(mem-0.1*mem)
+        # Convert memory from GB to megawords (MW)
+    mem_mb = int(mem * 1024)  # Convert GB to MB
+    mem_mw = int(mem_mb // (8 * nprocs))  # Convert MB to MW, considering 8 bytes per word
+
+
+
+    file_to_move="qmolpro.com"
+    unique_dir = create_unique_molpro_dir()
+    original_dir = os.getcwd()
+    
+    # Get scratch directory
+    scratch_path = os.getenv('SCRATCH', '/tmp')
+    
+    # Create scratch directory for this calculation
+    scratch_calc_dir = os.path.join(scratch_path, unique_dir)
+    os.makedirs(scratch_calc_dir, exist_ok=True)
+    print(f"Created scratch calculation directory: {scratch_calc_dir}")
+    
+    if os.path.exists(file_to_move):
+        # Copy the input file to both local and scratch directories
+        local_destination = os.path.join(unique_dir, os.path.basename(file_to_move))
+        scratch_destination = os.path.join(scratch_calc_dir, os.path.basename(file_to_move))
+        
+        shutil.move(file_to_move, local_destination)
+        shutil.copy2(local_destination, scratch_destination)
+        print(f"Input file copied to local: {local_destination}")
+        print(f"Input file copied to scratch: {scratch_destination}")
+    else:
+        exit()
+
+    # Change to scratch directory for molpro execution
+    print(f"Changing working directory to scratch: {scratch_calc_dir}")
+    print(f"Current working directory before change: {os.getcwd()}")
+    try:
+        os.chdir(scratch_calc_dir)
+        print(f"Successfully changed to scratch directory: {os.getcwd()}")
+    except OSError as e:
+        print(f"ERROR: Failed to change to scratch directory {scratch_calc_dir}: {e}")
+        raise
+
+
+    # Check if we're in test mode
+    test_mode = os.environ.get('EXT_TEST_MODE', '0') == '1'
+    
+    if test_mode:
+        print("TEST MODE: Skipping actual Molpro execution")
+        # Create mock output files
+        Energy = -76.123456789  # Mock energy for testing
+        
+        # Create mock qmolpro.out file
+        with open('qmolpro.out', 'w') as molproout:
+            molproout.write("Molpro test output\n")
+            molproout.write(f"EXE_ENERGY={Energy}\n")
+            molproout.write("End of test output\n")
+        
+        # Create mock XML file for gradients if needed
+        if OptFlag:
+            # Create simple mock XML with predictable gradients
+            with open('qmolpro.xml', 'w') as xmlfile:
+                xmlfile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                xmlfile.write('<molpro>\n')
+                # Create mock gradients - simple values for testing
+                for grad_num in range(3):  # Create 3 gradient blocks for testing
+                    xmlfile.write('<gradient>\n')
+                    if atoms:
+                        for atom in range(atoms):
+                            # Create predictable gradient values for testing
+                            gx = (grad_num + 1) * 0.001 + atom * 0.0001
+                            gy = (grad_num + 1) * 0.002 + atom * 0.0001
+                            gz = (grad_num + 1) * 0.003 + atom * 0.0001
+                            xmlfile.write(f'  {gx:.10f}  {gy:.10f}  {gz:.10f}\n')
+                    else:
+                        # Default 3 atoms for testing
+                        for atom in range(3):
+                            gx = (grad_num + 1) * 0.001 + atom * 0.0001
+                            gy = (grad_num + 1) * 0.002 + atom * 0.0001
+                            gz = (grad_num + 1) * 0.003 + atom * 0.0001
+                            xmlfile.write(f'  {gx:.10f}  {gy:.10f}  {gz:.10f}\n')
+                    xmlfile.write('</gradient>\n')
+                xmlfile.write('</molpro>\n')
+        
+        print(f"TEST MODE: Created mock output with energy {Energy}")
+    else:
+        # Normal execution
+        command = f"molpro -s -n {nprocs} -t 1 -m {mem_mw}m qmolpro.com --output qmolpro.out -W {os.getenv('SCRATCH', '/tmp')}  -D {os.getenv('SCRATCH', '/tmp')}"
+        print(command)
+        subprocess.run(shlex.split(command))
+        
+        with open ('qmolpro.out','r') as molproout:
+            for line in molproout:
+            # Check if the line contains the target string
+                if 'EXE_ENERGY' in line:
+            # Split the line to extract the floating-point number
+                    parts = line.split('=')[1].split()
+                    
+            # Convert the extracted part to a floating-point number and store it in a variable
+                    Energy = float(parts[0])
+                    break  # Exit the loop after finding the target line
+    # Copy output files from scratch back to local directory
+    local_calc_dir = os.path.join(original_dir, unique_dir)
+    print(f"Copying output files from scratch {scratch_calc_dir} to local {local_calc_dir}")
+    
+    # Copy all relevant output files
+    output_files = ['qmolpro.out', 'qmolpro.xml']
+    for output_file in output_files:
+        scratch_file = os.path.join(scratch_calc_dir, output_file)
+        local_file = os.path.join(local_calc_dir, output_file)
+        if os.path.exists(scratch_file):
+            shutil.copy2(scratch_file, local_file)
+            print(f"Copied {output_file} from scratch to local directory")
+        else:
+            print(f"Warning: {output_file} not found in scratch directory")
+    
+    # Also copy any additional output files that might have been created
+    for item in os.listdir(scratch_calc_dir):
+        if item not in ['qmolpro.com', 'qmolpro.out', 'qmolpro.xml']:  # Skip input and already copied files
+            scratch_item = os.path.join(scratch_calc_dir, item)
+            local_item = os.path.join(local_calc_dir, item)
+            if os.path.isfile(scratch_item):
+                shutil.copy2(scratch_item, local_item)
+                print(f"Copied additional file {item} from scratch to local directory")
+    
+    print(' Energy post processing done:')
+    print(Energy)
+
+    if OptFlag:
+        print("OPT FLAG DETECTED")
+
+
+# In questo caso devi settare il gradiente a 0 senza fare il calcolo delle forze
+# serve per fare uno scan rigido 
+        if readgradpy.upper() == 'SCAN': 
+            grad = [[0.0, 0.0, 0.0] for _ in range(atoms)]
+            return Energy,dipole,grad
+
+
+#  optg,savegrd=gradient,maxit=2
+        if readgradpy.upper() == 'NONE':
+
+
+            # Change to local directory to read the copied output files  
+            print(f"Changing to local directory to read output: {local_calc_dir}")
+            print(f"Current working directory before change: {os.getcwd()}")
+            try:
+                os.chdir(local_calc_dir)
+                print(f"Successfully changed to local calc directory: {os.getcwd()}")
+            except OSError as e:
+                print(f"ERROR: Failed to change to local calc directory {local_calc_dir}: {e}")
+                raise
+            
+            with open('testgradient', 'r') as file:
+                lines = file.readlines()
+
+                grad_coord = lines[2:]
+                grad = []
+                # Print the gradients from the last block
+                for line in grad_coord:
+                    parts = line.split()
+                    grad.append(parts[-3:])
+
+                print("Read gradient from MOLPRO")
+                for sublist in grad:
+                    print("{:12.6f} {:12.6f} {:12.6f}".format(*[float(x) for x in sublist]))
+                # Old version
+                grad = [[float(element)*(-0.0194469) for element in sublist] for sublist in grad]
+                
+                print("Read gradient from MOLPRO CONVERTED")
+                for sublist in grad:
+                    print("{:12.6f} {:12.6f} {:12.6f}".format(*sublist))
+                print(f"Restoring original working directory: {original_dir}")
+                print(f"Current working directory before restore: {os.getcwd()}")
+                try:
+                    os.chdir(original_dir)
+                    print(f"Successfully restored to original directory: {os.getcwd()}")
+                except OSError as e:
+                    print(f"ERROR: Failed to restore to original directory {original_dir}: {e}")
+                    raise
+                #os.rmdir(unique_dir)
+                return Energy,dipole,grad
+
+        elif readgradpy.upper() == 'READ':
+            # Use the new operations and formula from parse_scheme_and_formula
+            parsed_scheme_operations = operations
+
+            # Count actual gradients needed for calculations
+            num_actual_gradients_to_read = 0
+            for op_type, *_ in parsed_scheme_operations:
+                if op_type == 'coeff':
+                    num_actual_gradients_to_read += 1
+
+            print(77*'*')
+            print(f"Operations from scheme: {parsed_scheme_operations}")
+            if formula:
+                print(f"Custom formula found: {formula}")
+            print(f"Number of actual gradient calculations to read from XML: {num_actual_gradients_to_read}")
+            print("READING COMPOSITE GRADIENTS FROM XML")
+
+            # Read gradients from XML (change to local directory first)
+            print(f"Changing to local directory for XML reading: {local_calc_dir}")
+            print(f"Current working directory before change: {os.getcwd()}")
+            try:
+                os.chdir(local_calc_dir)
+                print(f"Successfully changed to local calc directory for XML: {os.getcwd()}")
+            except OSError as e:
+                print(f"ERROR: Failed to change to local calc directory {local_calc_dir}: {e}")
+                raise
+            
+            actual_gradients_from_xml = []
+            if num_actual_gradients_to_read > 0: # Read XML only if there are 'coeff' gradients
+                with open('qmolpro.xml', 'r') as file:
+                    xml_lines = file.readlines()
+
+                in_gradient_section = False
+                current_gradient_xml_data = []
+                gradients_read_count = 0
+
+                for line_xml in xml_lines:
+                    line_xml = line_xml.strip()
+                    if '<gradient' in line_xml:
+                        in_gradient_section = True
+                        current_gradient_xml_data = []
+                        continue
+                    elif '</gradient>' in line_xml:
+                        in_gradient_section = False
+                        actual_gradients_from_xml.append(np.array(current_gradient_xml_data))
+                        gradients_read_count += 1
+                        if gradients_read_count >= num_actual_gradients_to_read:
+                            break
+
+                    if in_gradient_section and line_xml:
+                        values = line_xml.split()
+                        if len(values) == 3:
+                            current_gradient_xml_data.append([float(values[0]), float(values[1]), float(values[2])])
+
+                if len(actual_gradients_from_xml) < num_actual_gradients_to_read:
+                    raise ValueError(f"ERROR: Required {num_actual_gradients_to_read} actual gradients, but found only {len(actual_gradients_from_xml)} in qmolpro.xml.")
+
+            # Gradient combination logic with formula support
+            grad = []
+            
+            if parsed_scheme_operations and formula:
+                # Use custom formula evaluation
+                print(f"Using custom formula: {formula}")
+                
+                # Extract coefficient values for formula evaluation
+                coeff_values = []
+                for op in parsed_scheme_operations:
+                    if op[0] == 'coeff':
+                        coeff_values.append(op[1])
+                    elif op[0] == 'copy':
+                        coeff_values.append(op[2])  # Store coefficient for formula
+                
+                # Validate formula if present
+                try:
+                    validate_formula_syntax(formula, len(actual_gradients_from_xml), len(coeff_values))
+                    print(f"Formula validation successful for {len(actual_gradients_from_xml)} gradients and {len(coeff_values)} coefficients.")
+                except Exception as e:
+                    print(f"Formula validation failed: {e}")
+                    raise ValueError(f"Formula validation error: {e}")
+                
+                # Evaluate formula for gradients
+                if actual_gradients_from_xml:
+                    combined_gradient_np = evaluate_custom_formula(formula, actual_gradients_from_xml, coeff_values)
+                    grad = combined_gradient_np.tolist()
+                    print(f"Formula evaluation result (gradient): shape {combined_gradient_np.shape}")
+                else:
+                    # No gradients to evaluate
+                    grad = [[0.0, 0.0, 0.0] for _ in range(atoms)] if atoms is not None else []
+                    print("No gradients available for formula evaluation, using zero gradient.")
+                    
+            elif not parsed_scheme_operations:
+                # Empty scheme, return zero gradient if 'atoms' is known
+                grad = [[0.0, 0.0, 0.0] for _ in range(atoms)] if atoms is not None else []
+                print("Empty scheme, using zero gradient.")
+            else:
+                # Standard linear combination (backward compatibility)
+                print("Using standard linear combination (no formula)")
+                
+                # Determine gradient shape
+                gradient_shape = None
+                if actual_gradients_from_xml:
+                    gradient_shape = actual_gradients_from_xml[0].shape
+                elif atoms is not None:
+                    gradient_shape = (atoms, 3)
+                else:
+                    raise ValueError("Cannot determine gradient structure: 'atoms' not specified and no actual gradients to infer shape.")
+
+                combined_gradient_np = np.zeros(gradient_shape, dtype=float)
+                current_actual_gradient_idx = 0
+
+                for op_details in parsed_scheme_operations:
+                    op_type = op_details[0]
+
+                    if op_type == 'coeff':
+                        if current_actual_gradient_idx >= len(actual_gradients_from_xml):
+                            raise IndexError(f"Logic error: trying to access actual gradient {current_actual_gradient_idx + 1} but only {len(actual_gradients_from_xml)} were loaded.")
+                        coeff_val = op_details[1]
+                        gradient_to_apply = actual_gradients_from_xml[current_actual_gradient_idx]
+                        combined_gradient_np += coeff_val * gradient_to_apply
+                        current_actual_gradient_idx += 1
+                    elif op_type == 'copy':
+                        if not actual_gradients_from_xml:
+                            raise ValueError("Cannot execute 'copy': no actual gradients calculated to copy from.")
+
+                        source_idx_1_based = op_details[1]
+                        coeff_val = op_details[2]
+
+                        if not (1 <= source_idx_1_based <= len(actual_gradients_from_xml)):
+                            raise ValueError(f"Invalid source index for 'copy': {source_idx_1_based}. "
+                                             f"Available actual gradients: from 1 to {len(actual_gradients_from_xml)}.")
+
+                        gradient_to_apply = actual_gradients_from_xml[source_idx_1_based - 1] # Convert to 0-based index
+                        combined_gradient_np += coeff_val * gradient_to_apply
+
+                grad = combined_gradient_np.tolist()
+
+            print("ACTUAL GRADIENTS PROCESSED (from XML):")
+            for i, gradient_set_np in enumerate(actual_gradients_from_xml):
+                print(f"Actual Gradient {i + 1}:")
+                for row in gradient_set_np:
+                    print(" ".join(map(lambda x: f"{x:15.10f}", row)))
+
+            print("FINAL COMBINED GRADIENT:")
+            if grad:
+                for row in grad:
+                    print(" ".join(map(lambda x: f"{x:15.10f}", row)))
+            else:
+                print("No final combined gradient (empty scheme or 'atoms' not specified).")
+
+            # IMPORTANT: Must restore to original directory BEFORE cleaning up scratch
+            print(f"Final restore to original working directory: {original_dir}")
+            try:
+                current_dir = os.getcwd()
+                print(f"Current working directory before final restore: {current_dir}")
+            except OSError:
+                print("WARNING: Cannot determine current directory (may have been deleted)")
+            
+            try:
+                os.chdir(original_dir)
+                print(f"Successfully restored to original directory: {os.getcwd()}")
+            except OSError as e:
+                print(f"ERROR: Failed to restore to original directory {original_dir}: {e}")
+                raise
+            
+            # NOW safely clean up scratch directory after we've left it
+            print(f"Cleaning up scratch directory: {scratch_calc_dir}")
+            if os.path.exists(scratch_calc_dir):
+                try:
+                    shutil.rmtree(scratch_calc_dir)
+                    print("Scratch directory cleaned up")
+                except Exception as e:
+                    print(f"WARNING: Failed to clean up scratch directory: {e}")
+            return Energy, dipole, grad
+        else: 
+            ### To use this feature in the ending.dat you should put a table like
+#{ TABLE, finalgradient_x,finalgradient_y,finalgradient_z;
+#SAVE,new,gradients.py;}
+            ### and you should specify the gradients file, in this case gradients in the external input
+            print(f'The gradient will be read from python module { readgradpy }')
+            import sys
+            import os
+            sys.path.append(f'{os.getcwd()}')
+
+            grad_mod = __import__(readgradpy)
+            grad = grad_mod.molpro_table_values
+            print('READ GRADIENTS VALUES')
+            
+            # IMPORTANT: Must restore to original directory BEFORE cleaning up scratch
+            print(f"Restoring to original working directory: {original_dir}")
+            try:
+                current_dir = os.getcwd()
+                print(f"Current working directory before restore: {current_dir}")
+            except OSError:
+                print("WARNING: Cannot determine current directory (may have been deleted)")
+            
+            try:
+                os.chdir(original_dir)
+                print(f"Successfully restored to original directory: {os.getcwd()}")
+            except OSError as e:
+                print(f"ERROR: Failed to restore to original directory {original_dir}: {e}")
+                raise
+            
+            # NOW safely clean up scratch directory after we've left it
+            print(f"Cleaning up scratch directory: {scratch_calc_dir}")
+            if os.path.exists(scratch_calc_dir):
+                try:
+                    shutil.rmtree(scratch_calc_dir)
+                    print("Scratch directory cleaned up")
+                except Exception as e:
+                    print(f"WARNING: Failed to clean up scratch directory: {e}")
+            return Energy,dipole,grad
+    else:
+        # IMPORTANT: Must change back to original directory BEFORE deleting scratch
+        # Otherwise we'll be trying to delete the directory we're currently in!
+        print(f"Restoring to original working directory: {original_dir}")
+        # Use try/except to handle case where current directory might be problematic
+        try:
+            current_dir = os.getcwd()
+            print(f"Current working directory before restore: {current_dir}")
+        except OSError:
+            print("WARNING: Cannot determine current directory (may have been deleted)")
+            current_dir = None
+        
+        try:
+            os.chdir(original_dir)
+            print(f"Successfully restored to original directory: {os.getcwd()}")
+        except OSError as e:
+            print(f"ERROR: Failed to restore to original directory {original_dir}: {e}")
+            raise
+        
+        # NOW we can safely clean up scratch directory after changing out of it
+        print(f"Cleaning up scratch directory: {scratch_calc_dir}")
+        if os.path.exists(scratch_calc_dir):
+            try:
+                shutil.rmtree(scratch_calc_dir)
+                print("Scratch directory cleaned up")
+            except Exception as e:
+                print(f"WARNING: Failed to clean up scratch directory: {e}")
+        
+        return Energy,dipole
+
+if __name__ == "__main__":
+    main()
+
