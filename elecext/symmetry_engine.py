@@ -24,11 +24,11 @@ class PointGroupInfo:
 
 def generate_all_rotation_matrices() -> List[np.ndarray]:
     """
-    Generate all 48 simple rotation matrices (axis permutations + sign changes).
+    Generate comprehensive set of rotation matrices for symmetry inference.
 
-    These include:
-    - 6 axis permutations (XYZ, XZY, YXZ, YZX, ZXY, ZYX)
-    - 8 sign combinations (+++, ++-, +-+, +--, -++, -+-, --+, ---)
+    Includes:
+    1. 48 simple rotations (axis permutations + sign changes)
+    2. Cn rotations around each axis for n=2,3,4,6 (common in molecular symmetry)
 
     Returns:
         List of 3x3 rotation matrices with det(M) = ±1
@@ -36,10 +36,8 @@ def generate_all_rotation_matrices() -> List[np.ndarray]:
     import itertools
     matrices = []
 
-    # 6 permutations of axes (0=X, 1=Y, 2=Z)
+    # Part 1: 48 simple rotations (axis permutations + sign changes)
     permutations = list(itertools.permutations([0, 1, 2]))
-
-    # 8 combinations of signs
     sign_combinations = list(itertools.product([1, -1], repeat=3))
 
     for perm in permutations:
@@ -48,12 +46,162 @@ def generate_all_rotation_matrices() -> List[np.ndarray]:
             for i in range(3):
                 M[i, perm[i]] = signs[i]
 
-            # Verify determinant is ±1 (proper or improper rotation)
             det = np.linalg.det(M)
             if abs(abs(det) - 1.0) < 1e-10:
                 matrices.append(M)
 
+    # Part 2: Cn rotations (critical for C3v, D3h, D6h groups)
+    # Add rotations around X, Y, Z axes for n=2,3,4,6
+    for axis in range(3):  # 0=X, 1=Y, 2=Z
+        for n in [2, 3, 4, 6]:  # Common symmetry orders
+            for k in range(1, n):  # k=0 is identity (already included)
+                angle = 2.0 * np.pi * k / n
+                c, s = np.cos(angle), np.sin(angle)
+
+                if axis == 0:  # Rotation around X
+                    R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+                elif axis == 1:  # Rotation around Y
+                    R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+                else:  # Rotation around Z
+                    R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+
+                # Avoid duplicates (check if similar to existing matrices)
+                is_duplicate = False
+                for M in matrices:
+                    if np.allclose(R, M, atol=1e-10):
+                        is_duplicate = True
+                        break
+
+                if not is_duplicate:
+                    matrices.append(R)
+
     return matrices
+
+
+def parse_forces_from_gaussian_log(log_file: str) -> Optional[np.ndarray]:
+    """
+    Extract forces from Gaussian log 'Axes restored to original set' section.
+
+    This function parses the forces table that Gaussian prints at the end of
+    frequency calculations, after restoring axes to the original orientation.
+
+    Parameters:
+        log_file: Path to Gaussian log file
+
+    Returns:
+        forces: Array of shape (N_atoms, 3) with forces in Hartree/Bohr,
+                or None if section not found
+
+    Example output from log:
+        ***** Axes restored to original set *****
+        -------------------------------------------------------------------
+        Center     Atomic                   Forces (Hartrees/Bohr)
+        Number     Number              X              Y              Z
+        -------------------------------------------------------------------
+             1        7          -0.000000000   -0.000000000   -0.044443232
+             2        1          -0.000000000   -0.024188737    0.014814411
+        -------------------------------------------------------------------
+    """
+    try:
+        with open(log_file, 'r') as f:
+            content = f.read()
+    except FileNotFoundError:
+        print(f"WARNING: Log file not found: {log_file}")
+        return None
+
+    # Pattern to match the forces section
+    pattern = r'\*\*\*\*\* Axes restored to original set \*\*\*\*\*.*?' \
+              r'Center\s+Atomic\s+Forces \(Hartrees/Bohr\).*?\n' \
+              r'\s*Number\s+Number\s+X\s+Y\s+Z\s*\n' \
+              r'-+\n' \
+              r'((?:\s+\d+\s+\d+\s+[\d.Ee+-]+\s+[\d.Ee+-]+\s+[\d.Ee+-]+\s*\n)+)'
+
+    match = re.search(pattern, content, re.DOTALL)
+    if not match:
+        print("WARNING: 'Axes restored to original set' section not found in log")
+        return None
+
+    # Parse force values from matched section
+    forces = []
+    force_lines = match.group(1).strip().split('\n')
+
+    for line in force_lines:
+        parts = line.split()
+        if len(parts) >= 5:  # center, atomic_num, fx, fy, fz
+            try:
+                fx = float(parts[2])
+                fy = float(parts[3])
+                fz = float(parts[4])
+                forces.append([fx, fy, fz])
+            except (ValueError, IndexError):
+                continue
+
+    if not forces:
+        print("WARNING: No forces parsed from log section")
+        return None
+
+    return np.array(forces)
+
+
+def infer_complete_nuclear_permutation(forces: np.ndarray,
+                                      transformation_matrix: np.ndarray,
+                                      tolerance: float = 1e-5) -> List[int]:
+    """
+    Infer complete nuclear permutation from transformation matrix and forces.
+
+    Given a transformation matrix T, finds the complete permutation of ALL atoms
+    such that: forces[perm[i]] ≈ T @ forces[i] for all i.
+
+    This ensures no incomplete permutations (all N atoms are mapped).
+
+    Parameters:
+        forces: Array of shape (N_atoms, 3) with force vectors
+        transformation_matrix: 3x3 transformation matrix T
+        tolerance: RMSD tolerance for matching forces (Hartree/Bohr)
+
+    Returns:
+        permutation: List of length N_atoms where perm[source] = target
+                    meaning source atom maps to target atom under T
+
+    Example for NH3 C3v with 120° rotation:
+        forces[1] = [0, -0.024, 0.015]  # H1
+        forces[2] = [-0.021, 0.012, 0.015]  # H2
+
+        T_120 @ forces[1] ≈ forces[2]
+        → perm[1] = 2  (H1 maps to H2)
+
+    Algorithm:
+        For each target atom:
+            Test all source atoms
+            Find source where ||T @ forces[source] - forces[target]|| is minimum
+            Assign perm[source] = target
+    """
+    N_atoms = len(forces)
+    perm = list(range(N_atoms))  # Start with identity
+
+    for target in range(N_atoms):
+        best_source = target  # Default: identity
+        best_rmsd = float('inf')
+
+        for source in range(N_atoms):
+            # Apply transformation to source force
+            transformed_force = transformation_matrix @ forces[source]
+
+            # Calculate RMSD to target force
+            rmsd = np.linalg.norm(transformed_force - forces[target])
+
+            if rmsd < best_rmsd:
+                best_rmsd = rmsd
+                best_source = source
+
+        # Assign mapping: best_source → target
+        perm[best_source] = target
+
+        # Warn if match is poor
+        if best_rmsd > tolerance:
+            print(f"WARNING: Permutation {best_source}→{target} has RMSD={best_rmsd:.2e} > tolerance={tolerance:.2e}")
+
+    return perm
 
 
 def find_coordinate_rotation_matrix(input_geom: np.ndarray,
@@ -112,6 +260,7 @@ class NonAbelianSymmetryEngine:
     
     def __init__(self, log_file: str):
         """Initialize engine by parsing Gaussian log file."""
+        self.log_file = log_file  # Save for fallback inference
         self.point_group_info = self.parse_gaussian_symmetry_info(log_file)
         self.tolerance = 1e-5  # Numerical tolerance for symmetry detection
         
@@ -119,11 +268,20 @@ class NonAbelianSymmetryEngine:
         """Parse complete symmetry information from Gaussian log file."""
         with open(log_file, 'r') as f:
             content = f.read()
-            
+
         # Extract point group name and number of operations
         pg_match = re.search(r'Point group (\w+)\s+NOp=\s*(\d+)', content)
         if not pg_match:
-            raise ValueError("Could not find point group information in log file")
+            print("WARNING: Could not find point group information in log file")
+            print("Returning minimal PointGroupInfo with empty operations (will use fallback)")
+            # Return minimal info - operations will be inferred from forces
+            return PointGroupInfo(
+                name="Unknown",
+                num_operations=0,
+                operations=[],
+                rotation_matrix=np.eye(3),
+                irreducible_representations=[]
+            )
             
         pg_name = pg_match.group(1)
         num_ops = int(pg_match.group(2))
@@ -294,7 +452,111 @@ class NonAbelianSymmetryEngine:
             irreps = match.group(1).replace('\\', ' ').split()
             return [irrep for irrep in irreps if irrep.strip()]
         return []
-    
+
+    def infer_symmetry_operations_from_forces(self,
+                                             forces: np.ndarray,
+                                             atoms_with_displacements: set,
+                                             tolerance: float = 1e-5) -> List[SymmetryOperation]:
+        """
+        Infer symmetry operations by analyzing force patterns.
+
+        This is the fallback method used when explicit symmetry operations
+        are not available in the Gaussian log (e.g., commercial versions).
+
+        The algorithm:
+        1. Identifies atoms without displacements (to be inferred by symmetry)
+        2. For each atom to infer:
+           - Tests all 48 simple rotation matrices (axis permutations + sign changes)
+           - Finds which calculated atom + transformation matrix gives best match
+        3. Constructs complete SymmetryOperation with full nuclear permutation
+
+        Parameters:
+            forces: Array (N_atoms, 3) of force vectors in Hartree/Bohr
+            atoms_with_displacements: Set of atom indices that were explicitly calculated
+            tolerance: RMSD tolerance for force matching (Hartree/Bohr)
+
+        Returns:
+            operations: List of SymmetryOperation objects with complete permutations
+
+        Note:
+            - Uses VECTOR transformations (not component-by-component)
+            - Generates COMPLETE nuclear permutations (all N atoms mapped)
+            - The 48 matrices include all sign changes, preserving sign information
+        """
+        print("\n=== INFERRING SYMMETRY OPERATIONS FROM FORCES ===")
+
+        all_atoms = set(range(len(forces)))
+        atoms_to_infer = all_atoms - atoms_with_displacements
+
+        print(f"Atoms with displacements: {sorted(atoms_with_displacements)}")
+        print(f"Atoms to infer: {sorted(atoms_to_infer)}")
+
+        operations = []
+        operation_id = 1
+
+        # Add identity operation
+        identity_perm = list(range(len(forces)))
+        operations.append(SymmetryOperation(
+            operation_id=operation_id,
+            is_abelian=True,
+            nuclear_permutation=identity_perm,
+            transformation_matrix=np.eye(3)
+        ))
+        operation_id += 1
+
+        # Generate all 48 simple rotation matrices
+        all_matrices = generate_all_rotation_matrices()
+        print(f"Testing {len(all_matrices)} transformation matrices...")
+
+        # For each atom to infer, find best transformation
+        for target_atom in sorted(atoms_to_infer):
+            best_match = None
+            best_rmsd = float('inf')
+
+            # Try all source atoms that were calculated
+            for source_atom in sorted(atoms_with_displacements):
+                # Try all transformation matrices
+                for T in all_matrices:
+                    # Apply VECTOR transformation (not component-wise!)
+                    transformed_force = T @ forces[source_atom]
+
+                    # Calculate RMSD (preserves sign via vector difference)
+                    rmsd = np.linalg.norm(transformed_force - forces[target_atom])
+
+                    if rmsd < tolerance and rmsd < best_rmsd:
+                        best_rmsd = rmsd
+                        best_match = (source_atom, T)
+
+            if best_match:
+                source_atom, T = best_match
+
+                # Infer COMPLETE nuclear permutation for this transformation
+                perm = infer_complete_nuclear_permutation(forces, T, tolerance)
+
+                # Check if transformation is abelian (diagonal or simple)
+                is_abelian = np.allclose(T, np.diag(np.diag(T)))
+
+                operations.append(SymmetryOperation(
+                    operation_id=operation_id,
+                    is_abelian=is_abelian,
+                    nuclear_permutation=perm,
+                    transformation_matrix=T
+                ))
+
+                print(f"Operation {operation_id}: Atom {source_atom}→{target_atom}, "
+                      f"RMSD={best_rmsd:.2e}, {'Abelian' if is_abelian else 'Non-Abelian'}")
+                print(f"  Transformation matrix:")
+                for row in T:
+                    print(f"    {row}")
+                print(f"  Nuclear permutation: {perm}")
+
+                operation_id += 1
+            else:
+                print(f"WARNING: No transformation found for atom {target_atom} (RMSD > {tolerance})")
+
+        print(f"✓ Inferred {len(operations)} operations (including identity)")
+        return operations
+
     def transform_coordinates_original_to_gaussian(self, coords_original: np.ndarray) -> np.ndarray:
         """Transform coordinates from original input to Gaussian standard orientation."""
         return coords_original @ self.point_group_info.rotation_matrix.T
@@ -457,7 +719,37 @@ class NonAbelianSymmetryEngine:
         for (atom_idx, axis_idx), mapping in explicit_gradient_recipe.items():
             if len(mapping) == 2:  # Has both up and down
                 atoms_with_displacements.add(atom_idx)
-        
+
+        # Step 1.5: FALLBACK - Infer symmetry operations from forces if needed
+        # This handles cases where Gaussian log doesn't contain explicit operations
+        # (e.g., commercial versions that don't print "Operation X Abelian/Non-Abelian")
+        if len(self.point_group_info.operations) == 0:
+            print("\n⚠ No explicit symmetry operations found in log")
+            print("Attempting to infer operations from forces...")
+
+            # Try to parse forces from log
+            forces = parse_forces_from_gaussian_log(self.log_file)
+
+            if forces is not None and len(forces) == num_atoms:
+                # Infer operations from force patterns
+                inferred_ops = self.infer_symmetry_operations_from_forces(
+                    forces,
+                    atoms_with_displacements,
+                    tolerance=1e-5
+                )
+
+                if inferred_ops:
+                    # Replace empty operations with inferred ones
+                    self.point_group_info.operations = inferred_ops
+                    print(f"✓ Successfully inferred {len(inferred_ops)} operations from forces")
+                else:
+                    print("✗ Failed to infer operations from forces")
+            else:
+                if forces is None:
+                    print("✗ Could not parse forces from log (section not found)")
+                else:
+                    print(f"✗ Force count mismatch: {len(forces)} forces vs {num_atoms} atoms")
+
         # Apply molecular symmetry constraints
         # For atoms with some displacements: constrain missing components to zero
         # For atoms with NO displacements: check if they're symmetry-equivalent to displaced atoms
