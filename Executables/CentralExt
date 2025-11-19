@@ -378,13 +378,35 @@ def run_parallel_numerical_gradient():
                 with open(task_ending, 'w') as f:
                     f.write(analytical_ending_content)
 
-                # Copy GENBAS file if MRCC
+                # Copy GENBAS file if MRCC (or section-specific basis files)
                 if program_key.lower() in ['mrcc', 'mrcc_ext']:
+                    import glob
+
+                    # First, try to copy a global GENBAS file if it exists
                     genbas_src = os.path.join(original_working_dir, 'GENBAS')
                     if os.path.exists(genbas_src):
                         genbas_dst = os.path.join(task_dir, 'GENBAS')
                         shutil.copy2(genbas_src, genbas_dst)
                         print(f"ANALYTICAL: Copied GENBAS file to {genbas_dst}")
+                    else:
+                        # No global GENBAS - look for section-specific basis files (basis_1, basis_2, etc.)
+                        print(f"ANALYTICAL: No global GENBAS file found, searching for section-specific basis files...")
+                        basis_files_pattern = os.path.join(original_working_dir, 'basis_*')
+                        basis_files = glob.glob(basis_files_pattern)
+
+                        if basis_files:
+                            print(f"ANALYTICAL: Found {len(basis_files)} section-specific basis file(s)")
+                            # Copy all basis_N files to the task directory
+                            for basis_src in basis_files:
+                                basis_filename = os.path.basename(basis_src)
+                                basis_dst = os.path.join(task_dir, basis_filename)
+                                try:
+                                    shutil.copy2(basis_src, basis_dst)
+                                    print(f"ANALYTICAL: Copied {basis_filename} to {basis_dst}")
+                                except Exception as e:
+                                    print(f"WARNING: Failed to copy {basis_filename}: {e}")
+                        else:
+                            print(f"ANALYTICAL: No section-specific basis files (basis_*) found either")
 
                 # Write central geometry to input file with OptFlag=1 (gradient mode)
                 # GauInpParser returns geometry as a list of strings: ["C 0.0 0.0 0.0", ...]
@@ -637,17 +659,43 @@ def run_parallel_numerical_gradient():
 
                     # Check if this is an MRCC calculation and copy GENBAS file if present
                     if program_key.lower() in ['mrcc', 'mrcc_ext']:
+                        import shutil
+                        import glob
+
+                        # First, try to copy a global GENBAS file if it exists
                         genbas_src = os.path.join(original_working_dir, 'GENBAS')
                         if os.path.exists(genbas_src):
                             genbas_dst = os.path.join(task_dir, 'GENBAS')
-                            import shutil
                             try:
                                 shutil.copy2(genbas_src, genbas_dst)
                                 print(f"MRCC SETUP: Copied GENBAS file from {genbas_src} to {genbas_dst}")
                             except Exception as e:
                                 print(f"WARNING: Failed to copy GENBAS file for task {task_id}: {e}")
                         else:
-                            print(f"MRCC SETUP: No GENBAS file found in {original_working_dir} for task {task_id}")
+                            # No global GENBAS found - look for section-specific basis files (basis_1, basis_2, etc.)
+                            print(f"MRCC SETUP: No global GENBAS file found in {original_working_dir} for task {task_id}")
+                            print(f"MRCC SETUP: Searching for section-specific basis files (basis_1, basis_2, etc.)...")
+
+                            # Find all basis_N files in the original working directory
+                            basis_files_pattern = os.path.join(original_working_dir, 'basis_*')
+                            basis_files = glob.glob(basis_files_pattern)
+
+                            if basis_files:
+                                print(f"MRCC SETUP: Found {len(basis_files)} section-specific basis file(s)")
+                                # Copy all basis_N files to the task directory so MRCC_ext can find them
+                                for basis_src in basis_files:
+                                    basis_filename = os.path.basename(basis_src)
+                                    basis_dst = os.path.join(task_dir, basis_filename)
+                                    try:
+                                        shutil.copy2(basis_src, basis_dst)
+                                        print(f"MRCC SETUP: Copied {basis_filename} from {basis_src} to {basis_dst}")
+                                    except Exception as e:
+                                        print(f"WARNING: Failed to copy {basis_filename} for task {task_id}: {e}")
+                            else:
+                                print(f"MRCC SETUP: No section-specific basis files (basis_*) found either")
+                                print(f"MRCC SETUP: If using custom basis sets, ensure either:")
+                                print(f"MRCC SETUP:   1. GENBAS file exists in {original_working_dir}, OR")
+                                print(f"MRCC SETUP:   2. basis_1, basis_2, etc. files exist in {original_working_dir}")
 
                     # Convert geometry from Angstrom back to Bohr for .EIn file (standard convention)
                     # .EIn files should always be in Bohr so each program knows the input units
