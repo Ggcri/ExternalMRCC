@@ -779,32 +779,36 @@ def assemble_full_gradient_from_force_map(explicit_gradient_recipe, calculated_e
     tuple
         (gradient, central_energy) where gradient is in Hartree/Bohr.
     """
-    # Check if advanced non-abelian symmetry analysis is available
+    # Check if advanced symmetry analysis with inference is available
     if fake_freq_log and os.path.exists(fake_freq_log):
         try:
             symmetry_engine = NonAbelianSymmetryEngine(fake_freq_log)
             point_group = symmetry_engine.point_group_info.name
+            num_ops = len(symmetry_engine.point_group_info.operations)
 
-            print(f"ADVANCED SYMMETRY: Using {point_group} point group with {symmetry_engine.point_group_info.num_operations} operations")
+            print(f"ADVANCED SYMMETRY: Using {point_group} point group")
+            print(f"ADVANCED SYMMETRY: {num_ops} operations found in log")
+            print("ADVANCED SYMMETRY: Applying symmetry-aware gradient assembly")
+            print("  (with automatic inference from forces if needed)")
 
-            # Use advanced non-abelian algorithm for non-abelian point groups
-            if point_group in ['TD', 'OH', 'IH'] or any(op.is_abelian == False for op in symmetry_engine.point_group_info.operations):
-                print("ADVANCED SYMMETRY: Applying non-abelian group theory algorithm")
-                gradient = symmetry_engine.assemble_full_gradient_with_symmetry(
-                    calculated_energies, geometries_in_bohr, explicit_gradient_recipe, num_atoms,
-                    original_coordinates_bohr=original_coordinates_bohr
-                )
-                
-                # Print efficiency statistics
-                stats = symmetry_engine.get_computational_efficiency_stats(num_atoms)
-                print(f"SYMMETRY EFFICIENCY: {stats['reduction_percentage']:.1f}% computational reduction")
-                print(f"SYMMETRY EFFICIENCY: {stats['irreducible_components']}/{stats['total_components']} components calculated")
-                
-                return gradient, calculated_energies.get("central", 0.0)
-            else:
-                print(f"ADVANCED SYMMETRY: {point_group} is abelian, using standard algorithm")
+            # ALWAYS use the advanced algorithm - it now has fallback to infer from forces
+            gradient = symmetry_engine.assemble_full_gradient_with_symmetry(
+                calculated_energies, geometries_in_bohr, explicit_gradient_recipe, num_atoms,
+                original_coordinates_bohr=original_coordinates_bohr
+            )
+
+            # Print efficiency statistics
+            stats = symmetry_engine.get_computational_efficiency_stats(num_atoms)
+            print(f"SYMMETRY EFFICIENCY: {stats['reduction_percentage']:.1f}% computational reduction")
+            print(f"SYMMETRY EFFICIENCY: {stats['irreducible_components']}/{stats['total_components']} components calculated")
+
+            return gradient, calculated_energies.get("central", 0.0)
+
         except Exception as e:
             print(f"ADVANCED SYMMETRY WARNING: Could not use advanced symmetry engine: {e}")
+            print(f"ADVANCED SYMMETRY: Error details: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
             print("ADVANCED SYMMETRY: Falling back to standard algorithm")
     
     # Standard algorithm (original implementation)
