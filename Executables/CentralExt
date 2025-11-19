@@ -1,4 +1,4 @@
-#!/shared/apps/python/3.9.16/bin/python3.9 -u
+#!/home/barone/lcrisci_vb/python3.9/bin/python3.9 -u
 import os
 import sys
 import subprocess

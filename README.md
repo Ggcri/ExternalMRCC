@@ -947,7 +947,7 @@ The External generates displacements by running a **fake Gaussian frequency calc
 |---------|-----------|----------|
 | `freq=step=5` | ~0.005 Bohr | Very tight convergence, small molecules |
 | `freq=step=10` | ~0.01 Bohr | **Default** (Gaussian standard) |
-| `freq=step=20` | ~0.02 Bohr | Faster calculations, larger molecules |
+| `freq=step=20` | ~0.02 Bohr | Larger molecules |
 | `freq=step=50` | ~0.05 Bohr | Initial optimization far from minimum |
 
 **Other useful keywords:**
