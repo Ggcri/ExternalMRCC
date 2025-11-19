@@ -110,13 +110,15 @@ def parse_forces_from_gaussian_log(log_file: str) -> Optional[np.ndarray]:
         return None
 
     # Pattern to match the forces section
-    pattern = r'\*\*\*\*\* Axes restored to original set \*\*\*\*\*.*?' \
-              r'Center\s+Atomic\s+Forces \(Hartrees/Bohr\).*?\n' \
+    # NOTE: Each line may have leading whitespace (common in Gaussian output)
+    pattern = r'\s*\*\*\*\*\* Axes restored to original set \*\*\*\*\*\s*\n' \
+              r'\s*-+\s*\n' \
+              r'\s*Center\s+Atomic\s+Forces \(Hartrees/Bohr\)\s*\n' \
               r'\s*Number\s+Number\s+X\s+Y\s+Z\s*\n' \
-              r'-+\n' \
+              r'\s*-+\s*\n' \
               r'((?:\s+\d+\s+\d+\s+[\d.Ee+-]+\s+[\d.Ee+-]+\s+[\d.Ee+-]+\s*\n)+)'
 
-    match = re.search(pattern, content, re.DOTALL)
+    match = re.search(pattern, content)
     if not match:
         print("WARNING: 'Axes restored to original set' section not found in log")
         return None
