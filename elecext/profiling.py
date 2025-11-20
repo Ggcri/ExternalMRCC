@@ -55,12 +55,12 @@ class PerformanceProfiler:
             self.active_threads.add(thread_id)
             self.thread_operations[thread_id].append(f"START: {operation_name}")
         
-        self._log(f"🚀 START: {operation_name}")
+        self._log(f"START: {operation_name}")
         
         try:
             yield
         except Exception as e:
-            self._log(f"💥 ERROR in {operation_name}: {str(e)}")
+            self._log(f"ERROR in {operation_name}: {str(e)}")
             raise
         finally:
             duration = time.perf_counter() - start_time
@@ -81,13 +81,13 @@ class PerformanceProfiler:
             # Log completion with performance flags
             flag = ""
             if duration > 5.0:
-                flag = " 🐌 VERY SLOW"
+                flag = " VERY SLOW"
             elif duration > 2.0:
-                flag = " ⏰ SLOW"
+                flag = " SLOW"
             elif duration > 1.0:
-                flag = " ⚠️  MODERATE"
+                flag = " MODERATE"
             
-            self._log(f"✅ DONE: {operation_name} ({duration:.3f}s){flag}")
+            self._log(f"DONE: {operation_name} ({duration:.3f}s){flag}")
     
     def track_thread_start(self, thread_name):
         """Track when a new thread starts."""
@@ -98,7 +98,7 @@ class PerformanceProfiler:
                 'start_time': time.perf_counter() - self.start_time,
                 'operations': []
             }
-        self._log(f"🧵 THREAD STARTED: {thread_name}")
+        self._log(f"THREAD STARTED: {thread_name}")
     
     def track_thread_end(self, thread_name):
         """Track when a thread ends."""
@@ -111,7 +111,7 @@ class PerformanceProfiler:
                 self.thread_lifecycle[thread_id]['end_time'] = end_time
                 self.thread_lifecycle[thread_id]['total_duration'] = duration
         
-        self._log(f"🏁 THREAD ENDED: {thread_name} (total: {duration:.3f}s)")
+        self._log(f"THREAD ENDED: {thread_name} (total: {duration:.3f}s)")
     
     def track_io_operation(self, operation_type, file_path=None):
         """Track I/O operations for contention analysis."""
@@ -119,7 +119,7 @@ class PerformanceProfiler:
             self.io_operations[operation_type] += 1
         
         file_info = f" -> {os.path.basename(file_path)}" if file_path else ""
-        self._log(f"💾 I/O: {operation_type}{file_info}")
+        self._log(f"I/O: {operation_type}{file_info}")
     
     def detect_thread_contention(self):
         """Analyze current thread contention."""
@@ -128,7 +128,7 @@ class PerformanceProfiler:
             total_threads = threading.active_count()
         
         if active_count > 2:
-            self._log(f"⚡ CONTENTION: {active_count} threads actively running (total: {total_threads})")
+            self._log(f"CONTENTION: {active_count} threads actively running (total: {total_threads})")
             return True
         return False
     
@@ -143,7 +143,7 @@ class PerformanceProfiler:
         self._log(f"Active threads peak: {len(self.thread_lifecycle)}")
         
         # Analyze operation timings
-        self._log("\n📊 OPERATION TIMINGS (sorted by total impact):")
+        self._log("\nOPERATION TIMINGS (sorted by total impact):")
         operation_analysis = []
         
         for op_name, times in self.timings.items():
@@ -176,7 +176,7 @@ class PerformanceProfiler:
         
         # Analyze blocking operations
         if self.blocking_operations:
-            self._log(f"\n🚫 BLOCKING OPERATIONS (>1.0s):")
+            self._log(f"\nBLOCKING OPERATIONS (>1.0s):")
             for op_name, blocks in self.blocking_operations.items():
                 total_blocking = sum(b['duration'] for b in blocks)
                 max_block = max(b['duration'] for b in blocks)
@@ -185,20 +185,20 @@ class PerformanceProfiler:
         
         # I/O Analysis
         if self.io_operations:
-            self._log(f"\n💾 I/O OPERATIONS:")
+            self._log(f"\nI/O OPERATIONS:")
             total_io = sum(self.io_operations.values())
             for op_type, count in sorted(self.io_operations.items(), key=lambda x: x[1], reverse=True):
                 percentage = (count / total_io) * 100 if total_io > 0 else 0
                 self._log(f"  {op_type:<20}: {count:4d} operations ({percentage:5.1f}%)")
         
         # Thread Analysis
-        self._log(f"\n🧵 THREAD ANALYSIS:")
+        self._log(f"\nTHREAD ANALYSIS:")
         for thread_id, info in self.thread_lifecycle.items():
             if 'total_duration' in info:
                 self._log(f"  {info['name']:<15}: {info['total_duration']:6.2f}s")
         
         self._log("=" * 80)
-        self._log("💡 PERFORMANCE RECOMMENDATIONS:")
+        self._log("PERFORMANCE RECOMMENDATIONS:")
         
         # Generate recommendations based on analysis
         recommendations = []

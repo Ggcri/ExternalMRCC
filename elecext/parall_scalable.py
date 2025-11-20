@@ -259,7 +259,7 @@ def run_energy_tasks_in_parallel_smart(geometries_to_calculate, displacement_inf
 def benchmark_scalability(max_workers_list=[1, 2, 4, 8, 16, 32, 50]):
     """Benchmark parallel execution scalability with different worker counts."""
     
-    print("\n🚀 SCALABILITY BENCHMARK")
+    print("\nSCALABILITY BENCHMARK")
     print("=" * 60)
     
     # Create mock task data
@@ -300,14 +300,14 @@ def benchmark_scalability(max_workers_list=[1, 2, 4, 8, 16, 32, 50]):
             duration = time.perf_counter() - start_time
             results[workers] = duration
             
-            print(f"  ✓ {workers} workers: {duration:.3f}s ({len(energies)} tasks)")
+            print(f"  {workers} workers: {duration:.3f}s ({len(energies)} tasks)")
             
         except Exception as e:
-            print(f"  ✗ {workers} workers failed: {e}")
+            print(f"  X {workers} workers failed: {e}")
             results[workers] = float('inf')
     
     # Analysis
-    print(f"\n📊 SCALABILITY RESULTS:")
+    print(f"\nSCALABILITY RESULTS:")
     print("Workers | Time (s) | Speedup | Efficiency")
     print("-" * 40)
     
@@ -328,7 +328,7 @@ def benchmark_scalability(max_workers_list=[1, 2, 4, 8, 16, 32, 50]):
 # Import compatibility layer
 def enable_scalable_mode():
     """Enable scalable mode for high-thread scenarios (50+ workers)."""
-    smart_print("🚀 SCALABLE MODE ENABLED for high-thread execution")
+    smart_print("SCALABLE MODE ENABLED for high-thread execution")
     # Replace the standard function with scalable version globally
     import elecext.parall as parall_module
     parall_module.run_energy_tasks_in_parallel = run_energy_tasks_in_parallel_scalable

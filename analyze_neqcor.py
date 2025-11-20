@@ -89,7 +89,7 @@ def analyze_nh3_neqcor(table: np.ndarray):
     if (x_pattern == [-1, -4, -10, -7] and
         y_pattern == [2, 5, 11, 8] and
         z_pattern == [3, 6, 12, 9]):
-        print("\n  ✓ This is σv (reflection in YZ plane)")
+        print("\n  This is σv (reflection in YZ plane)")
         print("    - X components change sign")
         print("    - Y and Z components unchanged")
         print("    - H2 (coords 7-9) ↔ H3 (coords 10-12)")
@@ -218,10 +218,10 @@ log_file = "ErrorDirectory/FAKE_FREQ/fake_freq_7.log"
 nh3_table, nh3_cols = extract_neqcor_table(log_file, occurrence=0)
 
 if nh3_table is not None:
-    print(f"\n✓ Extracted NH3 NEqCor table ({nh3_table.shape[0]} rows, {nh3_cols} columns)")
+    print(f"\nExtracted NH3 NEqCor table ({nh3_table.shape[0]} rows, {nh3_cols} columns)")
     perm, T = analyze_nh3_neqcor(nh3_table)
 else:
-    print("\n✗ Could not extract NH3 table")
+    print("\nX Could not extract NH3 table")
 
 # Analyze H2O
 analyze_h2o_neqcor()
@@ -236,8 +236,8 @@ print("""
    - 4 columns (H2O): Shows ALL 4 operations of C2v
 
 3. We can derive:
-   ✓ Nuclear permutations (which atoms swap)
-   ✓ Transformation matrices (how coordinates transform)
+   Nuclear permutations (which atoms swap)
+   Transformation matrices (how coordinates transform)
 
 4. This is MORE DIRECT than force-based inference!
    - No need to try 60+ rotation matrices

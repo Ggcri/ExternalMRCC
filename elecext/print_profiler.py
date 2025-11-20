@@ -229,7 +229,7 @@ def analyze_print_overhead():
         return
     
     print("\n" + "="*60)
-    print("🖨️  PRINT STATEMENT PERFORMANCE ANALYSIS")
+    print("PRINT STATEMENT PERFORMANCE ANALYSIS")
     print("="*60)
     
     print(f"Total print statements: {stats['total_prints']}")
@@ -239,7 +239,7 @@ def analyze_print_overhead():
     print(f"Min print time: {stats['min_print_time']*1000:.2f}ms")
     
     if stats['contention_events'] > 0:
-        print(f"\n🚫 STDOUT CONTENTION DETECTED:")
+        print(f"\nSTDOUT CONTENTION DETECTED:")
         print(f"Contention events: {stats['contention_events']}")
         print(f"Total time lost to contention: {stats['total_contention_time']:.3f}s")
         print(f"Average contention wait: {stats['avg_contention_time']*1000:.2f}ms")
@@ -248,10 +248,10 @@ def analyze_print_overhead():
         efficiency_loss = (stats['total_contention_time'] / stats['total_print_time']) * 100
         print(f"Efficiency loss due to contention: {efficiency_loss:.1f}%")
     else:
-        print("✅ No stdout contention detected")
+        print("No stdout contention detected")
     
     # Performance recommendations
-    print(f"\n💡 RECOMMENDATIONS:")
+    print(f"\nRECOMMENDATIONS:")
     if stats['avg_print_time'] > 0.001:  # > 1ms average
         print("• Print statements are slow - consider async logging")
     if stats['contention_events'] > stats['total_prints'] * 0.1:  # >10% contention

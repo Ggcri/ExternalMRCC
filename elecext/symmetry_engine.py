@@ -556,7 +556,7 @@ class NonAbelianSymmetryEngine:
             else:
                 print(f"WARNING: No transformation found for atom {target_atom} (RMSD > {tolerance})")
 
-        print(f"✓ Inferred {len(operations)} operations (including identity)")
+        print(f"Inferred {len(operations)} operations (including identity)")
         return operations
 
     def transform_coordinates_original_to_gaussian(self, coords_original: np.ndarray) -> np.ndarray:
@@ -726,7 +726,7 @@ class NonAbelianSymmetryEngine:
         # This handles cases where Gaussian log doesn't contain explicit operations
         # (e.g., commercial versions that don't print "Operation X Abelian/Non-Abelian")
         if len(self.point_group_info.operations) == 0:
-            print("\n⚠ No explicit symmetry operations found in log")
+            print("\nNo explicit symmetry operations found in log")
             print("Attempting to infer operations from forces...")
 
             # Try to parse forces from log
@@ -743,14 +743,14 @@ class NonAbelianSymmetryEngine:
                 if inferred_ops:
                     # Replace empty operations with inferred ones
                     self.point_group_info.operations = inferred_ops
-                    print(f"✓ Successfully inferred {len(inferred_ops)} operations from forces")
+                    print(f"Successfully inferred {len(inferred_ops)} operations from forces")
                 else:
-                    print("✗ Failed to infer operations from forces")
+                    print("X Failed to infer operations from forces")
             else:
                 if forces is None:
-                    print("✗ Could not parse forces from log (section not found)")
+                    print("X Could not parse forces from log (section not found)")
                 else:
-                    print(f"✗ Force count mismatch: {len(forces)} forces vs {num_atoms} atoms")
+                    print(f"X Force count mismatch: {len(forces)} forces vs {num_atoms} atoms")
 
         # Apply molecular symmetry constraints
         # For atoms with some displacements: constrain missing components to zero

@@ -800,7 +800,7 @@ def analyze_print_performance():
 def enable_async_logging():
     """Enable async logging mode to eliminate print contention."""
     smart_print.set_mode("async")
-    smart_print("🚀 Async logging enabled - print contention eliminated!")
+    smart_print("Async logging enabled - print contention eliminated!")
 
 
 def disable_logging():

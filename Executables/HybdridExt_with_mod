@@ -625,14 +625,14 @@ def compute_orca_energy(nprocs, mem, OptFlag=False, readgradpy='NONE', coefficie
                 with open('orcainp.out', 'r') as file:
                     content = file.read()
 
-                print("✓ ORCA output file read successfully")
+                print("ORCA output file read successfully")
 
                 # Find the gradient section directly - looking for this exact pattern
                 pattern = re.compile(r'-+\s*\n\s*CARTESIAN GRADIENT(?:\s*\(NUMERICAL\))?\s*\n-+\s*\n?',re.IGNORECASE)
 
                 match = pattern.search(content)
                 if match:
-                    print("✓ CARTESIAN GRADIENT section located")
+                    print("CARTESIAN GRADIENT section located")
                     # Get the text after the header
                     gradient_section = content[match.end():]
 
@@ -668,7 +668,7 @@ def compute_orca_energy(nprocs, mem, OptFlag=False, readgradpy='NONE', coefficie
 
                     # Display the extracted gradients
                     if gradient_lines:
-                        print(f"\n✓ Successfully extracted gradients for {len(grad)} atoms:")
+                        print(f"\nSuccessfully extracted gradients for {len(grad)} atoms:")
                         print("\n".join(gradient_lines))
                     else:
                         print("! No gradient data found after section header")
@@ -692,7 +692,7 @@ def compute_orca_energy(nprocs, mem, OptFlag=False, readgradpy='NONE', coefficie
             elif len(grad) != atoms:
                 print(f"! WARNING: Found {len(grad)} gradients but expected {atoms} - check results carefully")
             else:
-                print("✓ Gradient extraction completed successfully")
+                print("Gradient extraction completed successfully")
 
             # Store raw gradients for reporting
             raw_gradients = [row[:] for row in grad]  # Deep copy

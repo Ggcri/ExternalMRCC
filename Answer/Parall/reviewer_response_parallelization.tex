@@ -1,0 +1,148 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+% Code listing settings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    xleftmargin=2em,
+    framexleftmargin=1.5em
+}
+
+\begin{document}
+
+\section*{Response to Reviewer Comments on Parallelization Implementation}
+
+\section{Response to Comment 2: ``Optimized Parallel Implementation'' and ``Highly Parallelized Module''}
+
+We appreciate the reviewer's request for clarification regarding our parallelization terminology and implementation. We provide below a detailed technical explanation of our parallel implementation strategy.
+
+\subsection{Nature of the Parallelization}
+
+The reviewer's assessment that ``parallelization is only over (trivially parallel) independent displacements for numerical gradient calculations'' is partially correct but underestimates the computational sophistication of our implementation. While we acknowledge that displacement-level parallelism is indeed \textit{embarrassingly parallel} in nature, we employ the term ``highly parallelized'' to emphasize three key aspects that extend beyond simple task-level parallelism.
+
+First, our module provides \textbf{comprehensive integration} with multiple quantum chemistry codes through a unified parallel framework. Unlike standalone numerical gradient implementations that are typically code-specific, our implementation seamlessly integrates with Gaussian, MRCC, Molpro, and ORCA through a standardized External Interface protocol. This unified approach allows researchers to leverage parallel gradient calculations across different electronic structure methods without reimplementing parallelization logic for each code.
+
+Second, we incorporate \textbf{advanced symmetry exploitation} through a sophisticated symmetry engine (\texttt{NonAbelianSymmetryEngine} in \texttt{elecext/symmetry\_engine.py}) that automatically detects and exploits molecular point group symmetry to minimize the number of required displacements. For molecules with non-Abelian point groups such as C$_{\text{3v}}$, D$_{\text{3h}}$, and D$_{\text{6h}}$, this reduces computational requirements by 50--75\% before any displacement-level parallelism is applied. This symmetry-aware gradient assembly involves automatic extraction of symmetry operations from Gaussian frequency calculations, inference of nuclear permutations and $3 \times 3$ transformation matrices from force patterns when explicit operations are unavailable, vector-based gradient propagation through symmetry operations, and multi-pass gradient assembly for constrained components. This preprocessing step represents a significant computational optimization that is orthogonal to the parallelization strategy and justifies the characterization of our approach as ``highly'' optimized.
+
+Third, the implementation provides \textbf{granular resource management} with fine-grained control over computational resource allocation between the parallel orchestration layer and individual electronic structure calculations. This aspect is detailed in the Resource Management section below and represents a key architectural advantage over monolithic gradient implementations.
+
+\subsection{Technical Implementation Details}
+
+Our implementation uses Python's \texttt{concurrent.futures.ThreadPoolExecutor} to manage parallel execution of displacement calculations, as shown in the following code excerpt from \texttt{elecext/parall.py} (lines 675--751):
+
+\begin{lstlisting}
+def run_energy_tasks_in_parallel(geometries_to_calculate,
+                                 displacement_info,
+                                 hooks, max_workers=None):
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        fut_map = {
+            executor.submit(run_single_point_energy, task_id,
+                          geom, hooks,
+                          displacement_info.get(task_id)): task_id
+            for task_id, geom in geometries_to_calculate.items()
+        }
+        for fut in as_completed(fut_map):
+            # Process completed tasks...
+\end{lstlisting}
+
+Each worker thread executes a complete single-point energy calculation by first writing input files for the electronic structure code, then spawning the external program via \texttt{subprocess.run()} (line 332 of \texttt{parall.py}), subsequently parsing the output energy, and finally returning results to the main orchestrator.
+
+Our architecture employs a \textbf{hybrid thread-process model}: while the orchestration layer uses threads through \texttt{ThreadPoolExecutor}, each thread spawns an independent \textit{process} for the quantum chemistry calculation via the \texttt{subprocess} module. This hybrid approach provides several advantages. First, lightweight task scheduling is achieved via Python threads, which have minimal overhead compared to process creation. Second, complete process isolation is maintained for quantum chemistry codes, preventing any potential interference between concurrent calculations. Third, Python's Global Interpreter Lock (GIL) limitations for CPU-intensive operations are circumvented, as the actual computational work occurs in separate subprocesses that do not share the GIL.
+
+\subsection{Resource Management and Control}
+
+A distinguishing advantage of our External Interface implementation is the \textbf{granular control over resource partitioning} between the parallel displacement orchestrator and individual electronic structure calculations. The \texttt{CentralExt} dispatcher automatically adjusts computational resources through dynamic scaling, as illustrated in the following code from lines 306--344:
+
+\begin{lstlisting}
+# Memory: multiply by (1 + nthreads) to account for
+# parallel overhead
+# Threads: add nthreads to base threads
+adjusted_mem = f"{base_mem_value * (1 + nthreads)}{mem_unit}"
+adjusted_omp = str(int(mrcc_omp_procs) + nthreads)
+\end{lstlisting}
+
+Specifically, memory allocation is scaled by a factor of $(1 + N_{\text{parallel\_workers}})$ to prevent memory contention between concurrent calculations. Thread and core distribution is managed by allocating $N_{\text{base\_threads}} + N_{\text{parallel\_workers}}$ to the electronic structure code while reserving workers for parallel orchestration. Additionally, program-specific parameters are adapted to different quantum chemistry codes; for instance, MRCC uses \texttt{omp\_procs} and \texttt{mpi\_procs} parameters, while other codes use \texttt{nprocs}.
+
+This granular resource control allows users to optimize the trade-off between two competing parallelization strategies: intra-displacement parallelism (multi-threaded or MPI execution within each electronic structure calculation) versus inter-displacement parallelism (the number of simultaneous displacement calculations). For example, with 12 CPU cores available, users can choose among several strategies: Strategy A allocates 4 parallel workers with 3 cores each dedicated to the electronic structure code; Strategy B uses 2 parallel workers with 6 cores each; Strategy C employs 1 worker with all 12 cores for analytical gradient calculations combined with parallel numerical displacements for other components.
+
+This flexibility is \textbf{not trivially achieved} in monolithic gradient implementations and represents a significant advantage of the External Interface architecture. Traditional implementations typically fix the parallelization scheme at compile time or through rigid configuration files, whereas our approach allows dynamic resource allocation that can be optimized for each molecular system and computational environment.
+
+\subsection{System Architecture: Shared Memory vs. Distributed Memory}
+
+The core parallelization framework is implemented for \textbf{shared-memory systems}, using Python's \texttt{ThreadPoolExecutor} and direct \texttt{subprocess} calls. This design assumes that all workers access a common filesystem, memory is shared (though not explicitly used for inter-worker communication), and no inter-node communication layer is required. This architecture is appropriate for the vast majority of quantum chemistry calculations for method development and small-to-medium molecule studies, which are performed on shared-memory workstations or single-node servers.
+
+For users requiring distributed memory execution on HPC clusters with job schedulers such as SLURM or PBS, we provide interface scripts in the GitHub repository that adapt the framework to submit displacement calculations as independent batch jobs. These scheduler interface scripts replace direct \texttt{subprocess} calls with job submission commands (\texttt{sbatch} for SLURM, \texttt{qsub} for PBS) and implement asynchronous job status monitoring to coordinate distributed execution across multiple compute nodes. The interface handles job queue management, dependency tracking, and result collection, transforming the shared-memory orchestrator into a distributed workflow manager compatible with standard HPC environments.
+
+Extension to container orchestration systems (Kubernetes, Docker Swarm) or cloud computing platforms (AWS, Google Cloud, Azure) would require additional modifications beyond the provided scheduler interfaces, including implementation of cloud-specific APIs for resource provisioning, cost optimization algorithms for billed computational resources, and network communication protocols for distributed task distribution. However, the scheduler interface scripts demonstrate that the framework's modular architecture supports adaptation to distributed environments through well-defined extension points, maintaining the core benefits of code-agnostic gradient calculations while enabling scalability to cluster-scale computations when required.
+
+\section{Response to Comment 3: Nomenclature for Parallelization (Threads vs. Processes)}
+
+We thank the reviewer for identifying the inconsistency in our nomenclature. We acknowledge that our use of ``NThreads'' in Table S43 is \textbf{technically imprecise} and requires clarification.
+
+\subsection{Correct Technical Description}
+
+At the orchestration level, the parallel worker management uses Python threads through the \texttt{concurrent.futures.ThreadPoolExecutor} class. However, each thread spawns an independent \textit{process} for the quantum chemistry calculation via \texttt{subprocess.run()} (or \texttt{subprocess.Popen} in some variants). Therefore, the parameter labeled as ``NThreads'' in Table S43 should be more precisely termed \textbf{``parallel workers''} or \textbf{``concurrent displacement calculations''}. Each ``worker'' is implemented as a Python thread that spawns subprocess-based calculations, resulting in a hybrid threading-multiprocessing model.
+
+\subsection{Timing Measurements: Wall-Clock Time vs. CPU Time}
+
+All reported timings in our manuscript are \textbf{wall-clock times} measured using Python's \texttt{time.perf\_counter()} function (as implemented in \texttt{elecext/profiling.py}, lines 20, 51, and 66):
+
+\begin{lstlisting}
+start_time = time.perf_counter()
+# ... perform calculation ...
+duration = time.perf_counter() - start_time
+\end{lstlisting}
+
+This high-resolution timer measures elapsed real time (wall-clock), not accumulated CPU time. For parallel calculations, this distinction is critical: wall-clock time reflects the actual time experienced by the user from submission to completion, whereas CPU time would sum the computational effort across all cores. For numerical gradient calculations with $N$ parallel workers, the relationship is approximately given by
+\begin{equation}
+t_{\text{wall}} \approx \frac{t_{\text{sequential}}}{N} \quad \text{(ideal scaling)}
+\end{equation}
+while CPU time remains approximately constant:
+\begin{equation}
+t_{\text{CPU}} \approx t_{\text{sequential}} \quad \text{(independent of $N$)}
+\end{equation}
+
+Our performance benchmarks report wall-clock speedups, which are the relevant metric for assessing practical computational efficiency and user productivity.
+
+\subsection{Parallelism Strategy and Efficiency}
+
+The reviewer correctly notes that multiple parallelization strategies can be combined, and we acknowledge that our implementation supports flexible combinations of these approaches. Strategy A employs intra-calculation parallelism, where single-point energy or analytical gradient calculations use multi-threaded programs (via OpenMP) or MPI-parallel codes. For example, MRCC can be executed with 3 OpenMP threads or 3 MPI processes to parallelize the internal correlation calculation.
+
+Strategy B, which represents our primary approach, uses inter-displacement parallelism where individual displacements are computed by independent workers, each running single-threaded or minimally-threaded quantum chemistry calculations. This approach avoids parallel inefficiencies that can arise within quantum chemistry codes when scaling to larger core counts, potentially achieving lower total CPU time due to better CPU utilization and reduced parallel overhead.
+
+Strategy C combines both approaches through our dynamic resource allocation mechanism. For instance, with 12 available cores, one could configure 4 parallel workers with each MRCC calculation using 3 threads, achieving parallelism at both the displacement level and within each calculation. This hybrid strategy is configurable via resource adjustment parameters in \texttt{CentralExt} (lines 306--344).
+
+The optimal strategy depends on several factors including molecular size (which affects memory scaling and cache utilization), the electronic structure method (different methods have varying parallel scaling efficiency), hardware architecture (NUMA effects, cache hierarchy, memory bandwidth), and system load and contention from other processes. Our implementation provides the \textbf{flexibility to explore these trade-offs} through user-configurable resource parameters, rather than imposing a fixed parallelization scheme that may be suboptimal for certain systems or computational environments.
+
+\subsection{Revised Nomenclature for Manuscript}
+
+We propose the following corrections to address the nomenclature inconsistencies identified by the reviewer. For Table S43, the caption should be revised from ``Performance scaling with NThreads parallel processes'' to ``Performance scaling with $N$ parallel workers (Python threads spawning subprocess-based calculations)'' to accurately reflect the hybrid threading-multiprocessing model.
+
+In the main text (page 3, line 37), we will change ``a newly developed, highly parallelized module'' to ``a newly developed parallel gradient module with symmetry exploitation and configurable resource management'' to more precisely describe the implementation without overstating the sophistication of the displacement-level parallelism.
+
+In the abstract, ``optimized parallel implementation'' will be revised to ``parallel implementation with automatic symmetry reduction and granular resource control'' to emphasize the distinctive features of our approach (symmetry preprocessing and flexible resource management) rather than using generic parallelization terminology.
+
+\vspace{0.5cm}
+\noindent\textbf{Code References:}
+\begin{itemize}
+\item Parallel execution: \texttt{/elecext/parall.py:675--751} (\texttt{run\_energy\_tasks\_in\_parallel})
+\item Subprocess calls: \texttt{/elecext/parall.py:332} (\texttt{subprocess.run})
+\item Resource adjustment: \texttt{/Executables/CentralExt:306--344}
+\item Timing measurements: \texttt{/elecext/profiling.py:20,51,66} (\texttt{time.perf\_counter})
+\item Symmetry engine: \texttt{/elecext/symmetry\_engine.py:254--956} (\texttt{NonAbelianSymmetryEngine})
+\end{itemize}
+
+\end{document}

@@ -45,7 +45,7 @@ all_same = True
 for i in range(1, len(tables)):
     if not np.array_equal(tables[0], tables[i]):
         all_same = False
-        print(f"\n✗ Table {i+1} differs from Table 1!")
+        print(f"\nX Table {i+1} differs from Table 1!")
 
         # Show differences
         diff_rows = []
@@ -56,7 +56,7 @@ for i in range(1, len(tables)):
         print(f"  Different rows: {diff_rows[:5]}{'...' if len(diff_rows) > 5 else ''}")
 
 if all_same:
-    print("\n✓ All NEqCor tables are IDENTICAL")
+    print("\nAll NEqCor tables are IDENTICAL")
     print("  → Only ONE symmetry operation is encoded")
     print("  → This is likely a 'generator' operation")
     print("  → Other operations must be inferred by composition")

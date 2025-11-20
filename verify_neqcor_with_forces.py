@@ -49,7 +49,7 @@ for i in range(4):
 
     max_error = max(max_error, diff)
 
-    status = "✓" if diff < 1e-6 else "✗"
+    status = "OK" if diff < 1e-6 else "X"
     if diff >= 1e-6:
         all_ok = False
 
@@ -60,10 +60,10 @@ for i in range(4):
 
 print("\n" + "=" * 70)
 if all_ok:
-    print("✅ SUCCESS: NEqCor operation perfectly matches forces!")
+    print("SUCCESS: NEqCor operation perfectly matches forces!")
     print(f"   Max RMSD: {max_error:.2e}")
 else:
-    print(f"✗ FAILED: NEqCor operation does not match forces")
+    print(f"X FAILED: NEqCor operation does not match forces")
     print(f"   Max RMSD: {max_error:.2e}")
 print("=" * 70)
 
@@ -71,9 +71,9 @@ print("""
 CONCLUSION:
 -----------
 NEqCor provides ONE symmetry operation (σv for NH3) that:
-1. ✓ Has correct nuclear permutation
-2. ✓ Has correct transformation matrix
-3. ✓ Is verified against forces
+1. Has correct nuclear permutation
+2. Has correct transformation matrix
+3. Is verified against forces
 
 For COMPLETE operation set:
 - Parse NEqCor for explicit operations (fast, direct)

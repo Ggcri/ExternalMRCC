@@ -1,0 +1,43 @@
+\section{Flexible Gradient Combination via Scheme and Formula Directives}
+
+A distinguishing feature of our External Interface implementation is the capability to combine energies and gradients from multiple electronic structure calculations through user-defined algebraic expressions. This functionality enables the construction of composite methods and multi-level energy corrections without requiring modifications to the underlying quantum chemistry codes. The framework supports both linear combinations through the \texttt{!scheme} directive and arbitrary non-linear combinations through the \texttt{!formula} directive, providing unprecedented flexibility in defining custom computational protocols.
+
+The \texttt{!scheme} directive allows users to specify coefficient-based linear combinations of energies and gradients obtained from sequential calculations. For instance, a simple additive scheme combining three calculations with different basis sets or correlation methods can be expressed as follows in the preamble file:
+\begin{verbatim}
+!scheme
+! 1.0 0.5 -0.25
+!end
+\end{verbatim}
+This specification instructs the framework to compute the final energy as $E_{\text{final}} = 1.0 \times E_1 + 0.5 \times E_2 - 0.25 \times E_3$, where $E_1$, $E_2$, and $E_3$ represent energies from the first, second, and third calculations defined in the preamble. Crucially, the same coefficients are applied to the corresponding gradients when gradient calculations are requested, ensuring consistency between energies and forces. This linear combination capability is particularly valuable for implementing composite methods such as basis set extrapolation schemes, where energies computed at different cardinal numbers are combined with predetermined weights to approximate the complete basis set limit.
+
+Beyond linear combinations, the \texttt{!formula} directive enables users to define arbitrary mathematical expressions involving energies, gradients, and coefficients. The formula syntax supports standard arithmetic operations as well as transcendental functions including exponentials, logarithms, square roots, and trigonometric functions. For example, a composite method incorporating logarithmic corrections can be specified as:
+\begin{verbatim}
+!scheme
+! 1.0 0.5
+!formula
+! e=c1*e1+c2*e2*log(2.0)
+!end
+\end{verbatim}
+where \texttt{c1} and \texttt{c2} represent the coefficients (1.0 and 0.5, respectively), \texttt{e1} and \texttt{e2} denote the raw energies from the two calculations, and \texttt{log} represents the natural logarithm function. The formula evaluator supports a comprehensive set of mathematical functions (exp, log, log$_{10}$, sqrt, sin, cos, tan, abs, pow) that enable the construction of sophisticated energy expressions. For instance, a thermodynamic correction scheme might employ exponential weighting as $E_{\text{final}} = \exp(c_1 E_1 / k_B T) + c_2 E_2$, where $k_B T$ represents the thermal energy scale.
+
+An important optimization feature is the \texttt{copy} operation, which allows reuse of energy and gradient values from computationally expensive calculations without redundant execution. This is particularly valuable when a single high-level calculation (e.g., CCSD(T)) must be combined with multiple lower-level corrections. The syntax \texttt{copy[1,0.5]} instructs the framework to reuse the energy and gradient from calculation 1 with a coefficient of 0.5, avoiding the need to repeat the calculation. A practical example demonstrating this capability is:
+\begin{verbatim}
+!scheme
+! copy[1,0.5] copy[1,1.0] 2.0
+!end
+\end{verbatim}
+This scheme reuses the first calculation twice (with coefficients 0.5 and 1.0) and combines it with the third calculation weighted by 2.0, yielding $E_{\text{final}} = 0.5 \times E_1 + 1.0 \times E_1 + 2.0 \times E_3 = 1.5 \times E_1 + 2.0 \times E_3$. This eliminates the need to execute calculation 2, reducing computational cost while maintaining full flexibility in the energy expression.
+
+The combination of \texttt{copy} operations with custom formulas enables highly sophisticated composite methods. For instance, a focal-point approach combining high-level correlation at a small basis with basis set extrapolation at a lower correlation level can be expressed as:
+\begin{verbatim}
+!scheme
+! copy[1,0.5] 1.5
+!formula
+! e=exp(c1*e1/100)+c2*e2
+!end
+\end{verbatim}
+Here, calculation 1 (the expensive high-level reference) is reused with coefficient 0.5 inside a damped exponential function, while calculation 2 provides an additive correction with coefficient 1.5. The final energy expression becomes $E_{\text{final}} = \exp(0.5 E_1 / 100) + 1.5 E_2$, demonstrating the power of combining algebraic flexibility with computational efficiency through selective gradient reuse.
+
+From a computational workflow perspective, this scheme/formula framework transforms the External Interface from a simple gradient evaluator into a programmable quantum chemistry orchestrator. Researchers can prototype new composite methods, basis set extrapolation schemes, and thermodynamic corrections without writing code in compiled languages or modifying quantum chemistry source code. The formula evaluation is performed using Python's abstract syntax tree (AST) module with strict validation to ensure mathematical correctness and prevent injection attacks, supporting safe execution of user-defined expressions. Variable names follow a consistent convention where \texttt{e1}, \texttt{e2}, \texttt{e3} represent raw energy/gradient values and \texttt{c1}, \texttt{c2}, \texttt{c3} denote the corresponding coefficients from the scheme directive.
+
+This gradient combination capability has proven particularly valuable in our recent work on non-covalent interaction benchmarks, where we employ a three-level composite scheme: (1) CCSD(T)/aug-cc-pVTZ for the reference high-level correlation, (2) MP2/aug-cc-pVQZ for basis set convergence assessment, and (3) CCSD/aug-cc-pVTZ for higher-order correlation corrections beyond MP2. The scheme directive \texttt{! 1.0 1.0 -1.0} with formula \texttt{e=c1*e1+c2*e2-c3*e3} enables computation of the composite gradient $\nabla E_{\text{composite}} = \nabla E_{\text{CCSD(T)/aTZ}} + \nabla E_{\text{MP2/aQZ}} - \nabla E_{\text{CCSD/aTZ}}$, providing an approximation to the CCSD(T)/aug-cc-pVQZ gradient at significantly reduced computational cost. This flexibility in defining custom energy expressions represents a substantial advantage for method developers and computational chemists requiring specialized computational protocols beyond standard implementations available in quantum chemistry codes.

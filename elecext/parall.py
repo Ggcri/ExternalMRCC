@@ -473,9 +473,9 @@ def extract_input_and_original_orientations(log_filename):
     original_coordinates = extract_original_coordinates()
 
     if input_orientation is not None:
-        print(f"✓ Extracted Input orientation ({len(input_orientation)} atoms)")
+        print(f"Extracted Input orientation ({len(input_orientation)} atoms)")
     if original_coordinates is not None:
-        print(f"✓ Extracted Original coordinates ({len(original_coordinates)} atoms)")
+        print(f"Extracted Original coordinates ({len(original_coordinates)} atoms)")
 
     return input_orientation, original_coordinates
 
