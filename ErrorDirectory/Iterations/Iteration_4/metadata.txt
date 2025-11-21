@@ -1,5 +1,0 @@
-Iteration: 4
-Output file: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_Interface_project/TestingOldVersion/Symmetry/NH3_C3v/Gau-4132522.EOu
-Central energy: -55.451298734204
-Number of atoms: 4
-Timestamp: 2025-11-19 13:47:30
