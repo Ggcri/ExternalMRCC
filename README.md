@@ -21,6 +21,8 @@
 7. [Step Size Control for Numerical Gradients](#step-size-control-for-numerical-gradients)
 8. [Complete Examples](#complete-examples)
 9. [Troubleshooting](#troubleshooting)
+10. [Using the External Interface with Gaussian](#using-the-external-interface-with-gaussian)
+11. [Using the External Interface with Molpro](#using-the-external-interface-with-molpro)
 
 ---
 
@@ -1282,6 +1284,160 @@ calc=HF
 # Then switch to production basis:
 basis=aug-cc-pVDZ
 calc=CCSD(T)
+```
+
+---
+
+## Using the External Interface with Gaussian
+
+The External interface can be used to call Gaussian as the electronic structure program, instead of MRCC. This is useful for composite schemes that combine multiple Gaussian calculations.
+
+### Gaussian External Command Syntax
+
+```gaussian
+#p External="CentralExt gau <preamble> <ending> <nprocs> <mem> <flag> [parall N]" Force
+```
+
+**Parameters:**
+- `gau`: Program identifier for Gaussian
+- `<preamble>`: Path to preamble file containing Gaussian route section(s)
+- `<ending>`: Path to ending file (additional options or basis sets)
+- `<nprocs>`: Number of processors
+- `<mem>`: Memory in GB
+- `<flag>`: `READ` (use scheme), `SCAN` (zero gradient), or `NONE`
+- `parall N`: Optional parallel workers for numerical gradients
+
+### Example Gaussian Input
+
+**File:** `molecule.gjf`
+
+```gaussian
+%chk=test.chk
+%nprocs=1
+#p force External="CentralExt gau $PGAU/gau_preamble.dat $EGAU/gau_ending.dat 7 55 read parall 2"
+
+title
+
+0 1
+C                 -1.17333896   -0.15076314    0.00000000
+C                  0.23129705    0.40235083    0.00000000
+O                  1.24256504   -0.27713019    0.00000000
+H                 -1.71570095    0.21776766    0.88766494
+H                 -1.14950998   -1.24995315    0.00000000
+H                 -1.71570095    0.21776766   -0.88766494
+H                  0.29260707    1.52200483    0.00000000
+```
+
+**Note:** Environment variables like `$PGAU` and `$EGAU` are supported for preamble and ending file paths (see [Using Environment Variables](#using-environment-variables-for-preambleending-files-advanced)).
+
+### Gaussian Preamble File Format
+
+The preamble file contains the Gaussian route section. For composite schemes, use `--link1--` to separate multiple calculation blocks:
+
+```
+!scheme
+! 1.0 -1.0
+!end
+
+#p CCSD/aug-cc-pVDZ Force
+
+--link1--
+
+#p MP2/aug-cc-pVTZ Force
+```
+
+---
+
+## Using the External Interface with Molpro
+
+The External interface can also call Molpro as the electronic structure program. This enables advanced multi-reference calculations and composite methods using Molpro's capabilities.
+
+### Molpro External Command Syntax
+
+```gaussian
+#p External="CentralExt molpro <preamble> <ending> <nprocs> <mem> <flag>" Force
+```
+
+**Parameters:**
+- `molpro`: Program identifier for Molpro
+- `<preamble>`: Path to preamble file containing Molpro input header
+- `<ending>`: Path to ending file containing final Molpro commands
+- `<nprocs>`: Number of processors
+- `<mem>`: Memory in GB
+- `<flag>`: `READ` (use scheme), `SCAN` (zero gradient), or gradient file name
+
+### Important: Setting the Final Energy in Molpro
+
+**The External interface reads the final energy from the Molpro output file by searching for the string `EXE_ENERGY`.**
+
+You **must** set the energy value in a variable named `exe_energy` (case-insensitive) in your `ending.dat` file. The interface will parse the output for a line containing `EXE_ENERGY=<value>` and extract the energy.
+
+### Example Molpro ending.dat
+
+```molpro
+! Final calculation commands
+{casscf; closed,5; occ,8; wf,14,1,0}
+{rs2c}
+
+! IMPORTANT: Set the final energy that will be read by the External interface
+exe_energy = energy
+show, exe_energy
+```
+
+The `show, exe_energy` command prints the energy value in the output file in a format that the External interface can parse:
+
+```
+EXE_ENERGY =    -76.343567890123
+```
+
+### Complete Molpro Example
+
+**File:** `preamble.dat`
+
+```molpro
+***,Molecule calculation
+memory,500,m
+basis=aug-cc-pVDZ
+```
+
+**File:** `ending.dat`
+
+```molpro
+{hf}
+{ccsd(t)}
+
+! Set the final energy for External interface
+exe_energy = energy
+show, exe_energy
+```
+
+**Gaussian input calling Molpro:**
+
+```gaussian
+%chk=test.chk
+%nprocs=1
+#p External="CentralExt molpro preamble.dat ending.dat 4 16 READ" Force
+
+Molpro CCSD(T) calculation
+
+0 1
+O     0.000000    0.000000    0.117790
+H     0.000000    0.756950   -0.471160
+H     0.000000   -0.756950   -0.471160
+```
+
+### Molpro Gradient Handling
+
+For gradient calculations with Molpro, use `READ` mode to parse gradients from `qmolpro.xml`. The preamble should contain the scheme coefficients:
+
+```molpro
+!scheme
+! 1.0 -1.0
+!end
+
+***,Composite calculation
+memory,500,m
+...
 ```
 
 ---
