@@ -8,7 +8,7 @@ import time
 EXEC_DIR = os.environ.get("ELECEXT_PATH", os.path.dirname(__file__))
 
 PROGRAM_MAP = {
-    'molpro': 'MolproExt',
+    'molpro': 'MolproExt_project',
     'molproext': 'MolproExt',
     'molpro_ga': 'MolproExt_GA',
     'molpro_ga_proj': 'MolproExt_GA_proj',
