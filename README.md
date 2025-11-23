@@ -789,7 +789,7 @@ CentralExt mrcc <mem> <gradmode> <omp> <mpi> <preamble> <ending> <layer> <input>
 
 **Parameters:**
 - `<mem>`: Total memory (e.g., `16GB`, `120GB`)
-- `<gradmode>`: `READ` (use scheme), `SCAN` (zero gradient), or filename
+- `<gradmode>`: `READ` (use scheme) 
 - `<omp>`: OpenMP threads **per MPI process**
 - `<mpi>`: Number of MPI processes
 - `<preamble>`: Preamble file path
@@ -1304,7 +1304,7 @@ The External interface can be used to call Gaussian as the electronic structure 
 - `<ending>`: Path to ending file (additional options or basis sets)
 - `<nprocs>`: Number of processors
 - `<mem>`: Memory in GB
-- `<flag>`: `READ` (use scheme), `SCAN` (zero gradient), or `NONE`
+- `<flag>`: `READ` (use scheme)
 - `parall N`: Optional parallel workers for numerical gradients
 
 ### Example Gaussian Input
@@ -1364,7 +1364,7 @@ The External interface can also call Molpro as the electronic structure program.
 - `<ending>`: Path to ending file containing final Molpro commands
 - `<nprocs>`: Number of processors
 - `<mem>`: Memory in GB
-- `<flag>`: `READ` (use scheme), `SCAN` (zero gradient), or gradient file name
+- `<flag>`: `READ` (use scheme)
 
 ### Important: Setting the Final Energy in Molpro
 
