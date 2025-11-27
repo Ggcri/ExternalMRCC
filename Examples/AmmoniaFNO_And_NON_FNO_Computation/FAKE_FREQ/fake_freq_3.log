@@ -2,8 +2,6 @@
  Input=/local/scratch/lcrisci_vb/amm_73951.pbs.village.sns.it/tmp4vk7tucc/fake_freq.gjf
  Output=/local/scratch/lcrisci_vb/amm_73951.pbs.village.sns.it/tmp4vk7tucc/fake_freq.log
  Initial command:
- /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l1.exe "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-1003899.inp" -scrdir="/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/"
- Entering Link 1 = /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l1.exe PID=   1003900.
   
  Copyright (c) 1988-2024, Gaussian, Inc.  All Rights Reserved.
   
@@ -77,7 +75,6 @@
  J. B. Foresman, and D. J. Fox, Gaussian, Inc., Wallingford CT, 2023.
  
  ******************************************
- Gaussian DV:  ES64L-GDVRevJ.28 14-Apr-2024
                 11-Oct-2025 
  ******************************************
  ------------------------------------
@@ -100,7 +97,6 @@
  1/10=4,18=20,30=1,33=2,38=10,64=2/3;
  99//99;
  Leave Link    1 at Sat Oct 11 14:09:47 2025, MaxMem=           0 cpu:               0.0 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l101.exe)
  ONIOM data not found on unit 2.
  -------------
  fake freq run
@@ -428,7 +424,6 @@
       3   0.000000D+00
       4   0.000000D+00
  Leave Link  101 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  Numerical evaluation of force-constants.
  Nuclear step= 0.001000 Angstroms, electric field step= 0.000333 atomic units, NStep=1.
  In D2SvPt:  central point
@@ -440,7 +435,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -478,7 +472,6 @@
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -513,7 +506,6 @@
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         299.5962557         299.5962557         188.4160163
  Leave Link  202 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
  There are     3 symmetry adapted cartesian basis functions of A'  symmetry.
  There are     1 symmetry adapted cartesian basis functions of A"  symmetry.
@@ -531,7 +523,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned on.
  Leave Link  301 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -550,7 +541,6 @@
  Energy=    2.512780898E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  ***** Axes restored to original set *****
  -------------------------------------------------------------------
@@ -564,7 +554,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033256566 RMS     0.016968534
  Leave Link  716 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  At 1st pt FD prop file    721 does not exist.
  At 1st pt FD prop file    722 does not exist.
@@ -622,7 +611,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -636,7 +624,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -655,7 +642,6 @@
  Energy=    2.514004017E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -668,7 +654,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033256856 RMS     0.016975206
  Leave Link  716 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -808,7 +793,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -822,7 +806,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -841,7 +824,6 @@
  Energy=    2.514004427E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -854,7 +836,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033256857 RMS     0.016975212
  Leave Link  716 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -904,7 +885,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -918,7 +898,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -937,7 +916,6 @@
  Energy=    2.514003608E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -950,7 +928,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033256856 RMS     0.016975201
  Leave Link  716 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -1077,7 +1054,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -1091,7 +1067,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -1110,7 +1085,6 @@
  Energy=    2.450432285E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -1123,7 +1097,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.032729783 RMS     0.016746291
  Leave Link  716 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -1173,7 +1146,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -1187,7 +1159,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -1206,7 +1177,6 @@
  Energy=    2.576121688E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -1219,7 +1189,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033779857 RMS     0.017190029
  Leave Link  716 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -1346,7 +1315,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:48 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -1360,7 +1328,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -1379,7 +1346,6 @@
  Energy=    2.512860831E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -1392,7 +1358,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033256455 RMS     0.016968543
  Leave Link  716 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -1532,7 +1497,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -1546,7 +1510,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -1565,7 +1528,6 @@
  Energy=    2.464955890E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -1578,7 +1540,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.032972705 RMS     0.016811091
  Leave Link  716 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -1628,7 +1589,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -1642,7 +1602,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -1661,7 +1620,6 @@
  Energy=    2.562064048E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -1674,7 +1632,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033540847 RMS     0.017131017
  Leave Link  716 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -1801,7 +1758,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -1815,7 +1771,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -1834,7 +1789,6 @@
  Energy=    2.533858241E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -1847,7 +1801,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033431103 RMS     0.017042876
  Leave Link  716 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -1897,7 +1850,6 @@
  Electric Field:
  I=    1 X=   0.000000000000D+00 Y=   0.000000000000D+00 Z=   0.000000000000D+00
  Leave Link  106 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
      4 basis functions,     4 primitive gaussians,     4 cartesian basis functions
      2 alpha electrons        2 beta electrons
@@ -1911,7 +1863,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned off.
  Leave Link  301 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  UFF calculation of energy and first derivatives.
  Energy per function type:
  Direct Coulomb + vdW (small)                           0.000000000
@@ -1930,7 +1881,6 @@
  Energy=    2.491961572E-03 NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  -------------------------------------------------------------------
  Center     Atomic                   Forces (Hartrees/Bohr)
@@ -1943,7 +1893,6 @@
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.033081078 RMS     0.016894968
  Leave Link  716 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l106.exe)
  NDeriv=     12 NFrqRd=  0 NDerD0=      0 MskFDP=       0 MskDFD=       0 MskDF0=       0
  Allocation parameters:
  ICO    =           1 IFXYZ2 =          13 ICurSt =          25
@@ -2406,7 +2355,6 @@
       2   0.000000D+00  0.000000D+00
       3   0.000000D+00  0.000000D+00
  Leave Link  106 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  Full mass-weighted force constant matrix:
  Low frequencies --- -635.7296 -635.7296 -615.2126   -0.0140   -0.0061   -0.0005
@@ -2573,7 +2521,6 @@
       8 -0.129180D-01  0.357790D-02  0.292082D-01
       9  0.129180D-01 -0.357790D-02  0.357789D-02  0.292082D-01
  Leave Link  716 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -3502,13 +3449,11 @@
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:09:49 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l9999.exe)
 
  Test job not archived.
  1\1\GINC-THIOTIMOLINE01\Freq\UFF\ZDO\H3N1\LCRISCI_VB\11-Oct-2025\0\\#p
   freq=num geom=gic uff iop(1/33=2)\\fake freq run\\0,1\N,0.,0.,0.11186
  53134\H,0.,0.9418819892,-0.2610190647\H,-0.81569373,-0.4709409946,-0.2
- 610190647\H,0.81569373,-0.4709409946,-0.2610190647\\Version=ES64L-GDVR
  evJ.28\HF=0.0025128\RMSD=0.000e+00\RMSF=1.697e-02\ZeroPoint=0.0342628\
  Thermal=0.0371387\ETot=0.0396515\HTot=0.0405957\GTot=0.0187478\Dipole=
  0.,0.,0.\DipoleDeriv=0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0

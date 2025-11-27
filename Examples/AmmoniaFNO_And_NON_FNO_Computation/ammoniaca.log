@@ -1410,7 +1410,6 @@
  \# opt b3lyp/gen freq\\Title Card Required\\0,1\N,0.,0.,0.1296341052\H
  ,0.0000002053,0.9418819892,-0.2432502729\H,-0.8156938327,-0.4709408168
  ,-0.2432502729\H,0.8156936274,-0.4709411724,-0.2432502729\\Version=ES6
- 4L-GDVRevJ.28\State=1-A1\HF=-56.5921848\RMSD=4.707e-09\RMSF=8.879e-05\
  Dipole=0.,0.,-0.5969571\Quadrupole=0.7837408,0.7837408,-1.5674816,0.,0
  .,0.\PG=C03V [C3(N1),3SGV(H1)]\\@
  The archive entry for this job was punched.
@@ -1881,7 +1880,6 @@
  \#N Geom=AllCheck Guess=TCheck SCRF=Check GenChk RB3LYP/ChkBas Freq\\T
  itle Card Required\\0,1\N,0.,0.,0.1296341052\H,0.0000002053,0.94188198
  92,-0.2432502729\H,-0.8156938327,-0.4709408168,-0.2432502729\H,0.81569
- 36274,-0.4709411724,-0.2432502729\\Version=ES64L-GDVRevJ.28\State=1-A1
  \HF=-56.5921848\RMSD=5.387e-10\RMSF=8.878e-05\ZeroPoint=0.0341596\Ther
  mal=0.0370308\ETot=-56.555154\HTot=-56.5542098\GTot=-56.5760522\Dipole
  =0.,0.,-0.5969571\DipoleDeriv=-0.3641141,0.,0.,0.,-0.3641169,0.000001,
@@ -1915,8 +1913,6 @@
  File lengths (MBytes):  RWF=     24 Int=      0 D2E=      0 Chk=     18 Scr=      1
  Normal termination of Gaussian DV at Sat Oct 11 14:01:56 2025.
  Initial command:
- /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l1.exe "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-998094.inp" -scrdir="/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/"
- Entering Link 1 = /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l1.exe PID=    999282.
   
  Copyright (c) 1988-2024, Gaussian, Inc.  All Rights Reserved.
   
@@ -1990,7 +1986,6 @@
  J. B. Foresman, and D. J. Fox, Gaussian, Inc., Wallingford CT, 2023.
  
  ******************************************
- Gaussian DV:  ES64L-GDVRevJ.28 14-Apr-2024
                 11-Oct-2025 
  ******************************************
  %chk=mrcc_struc.chk
@@ -2019,7 +2014,6 @@
  6/7=2,8=2,9=2,10=2/1;
  99/9=10,10=1024/99;
  Leave Link    1 at Sat Oct 11 14:01:57 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.3
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l101.exe)
  Structure from the checkpoint file:  "mrcc_struc.chk"
  -------------------
  Title Card Required
@@ -2051,7 +2045,6 @@
  NMagM=    0.4037610   2.7928460   2.7928460   2.7928460
  AtZNuc=   7.0000000   1.0000000   1.0000000   1.0000000
  Leave Link  101 at Sat Oct 11 14:01:57 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.2
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -2078,7 +2071,6 @@
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:01:57 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -2114,7 +2106,6 @@
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         299.5962557         299.5962557         188.4160162
  Leave Link  202 at Sat Oct 11 14:01:57 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
  There are     3 symmetry adapted cartesian basis functions of A'  symmetry.
  There are     1 symmetry adapted cartesian basis functions of A"  symmetry.
@@ -2132,7 +2123,6 @@
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned on.
  Leave Link  301 at Sat Oct 11 14:01:57 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  External calculation of energy and first derivatives.
  Running external command "CentralExt mrcc 4 READ 2 1 $PMR/PR_CCSDF12 $EMR/test_en.dat parall 16 R"
          input file       "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-999282.EIn"
@@ -2438,9 +2428,7 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  Energy=    -56.4933030     NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:05:11 2025, MaxMem=   104857600 cpu:               0.0 elap:             194.4
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l601.exe)
  Leave Link  601 at Sat Oct 11 14:05:11 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  ***** Axes restored to original set *****
  -------------------------------------------------------------------
@@ -2454,7 +2442,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.001463337 RMS     0.000793076
  Leave Link  716 at Sat Oct 11 14:05:11 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -2511,7 +2498,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:05:12 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.2
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -2547,7 +2533,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         298.5568816         298.5568816         190.3758785
  Leave Link  202 at Sat Oct 11 14:05:12 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
  There are     3 symmetry adapted cartesian basis functions of A'  symmetry.
  There are     1 symmetry adapted cartesian basis functions of A"  symmetry.
@@ -2565,7 +2550,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned on.
  Leave Link  301 at Sat Oct 11 14:05:12 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  External calculation of energy and first derivatives.
  Running external command "CentralExt mrcc 4 READ 2 1 $PMR/PR_CCSDF12 $EMR/test_en.dat parall 16 R"
          input file       "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-999282.EIn"
@@ -2871,7 +2855,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  Energy=    -56.4933311     NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:09:44 2025, MaxMem=   104857600 cpu:               0.0 elap:             272.5
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  ***** Axes restored to original set *****
  -------------------------------------------------------------------
@@ -2885,7 +2868,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.000082618 RMS     0.000031481
  Leave Link  716 at Sat Oct 11 14:09:44 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -2969,7 +2951,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:09:44 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -3005,9 +2986,7 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         298.5568816         298.5568816         190.3758785
  Leave Link  202 at Sat Oct 11 14:09:44 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l601.exe)
  Leave Link  601 at Sat Oct 11 14:09:44 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l9999.exe)
  Unable to Open any file for archive entry.
  1\1\GINC-THIOTIMOLINE01\FOpt\External='CentralExt mrcc 4 READ 2 1 $PMR
  /PR_CCSDF12 $EMR/test_en.dat parall 16'\ZDO\H3N1\LCRISCI_VB\11-Oct-202
@@ -3015,7 +2994,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  SDF12 $EMR/test_en.dat parall 16" opt(nomicro,readFC) geom=allcheck\\T
  itle Card Required\\0,1\N,0.,0.,0.1374842038\H,0.0000002042,0.93702125
  13,-0.245865292\H,-0.8114843096,-0.4685104488,-0.245865292\H,0.8114841
- 054,-0.4685108025,-0.245865292\\Version=ES64L-GDVRevJ.28\HF=-56.493331
  1\RMSD=0.000e+00\RMSF=3.148e-05\Dipole=0.,0.,0.\PG=C03V [C3(N1),3SGV(H
  1)]\\@
  The archive entry for this job was punched.
@@ -3083,8 +3061,6 @@ s   1  0  0  0  1  1   1  0  1  0
  File lengths (MBytes):  RWF=     24 Int=      0 D2E=      0 Chk=     19 Scr=      1
  Normal termination of Gaussian DV at Sat Oct 11 14:09:45 2025.
  Initial command:
- /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l1.exe "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-998094.inp" -scrdir="/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/"
- Entering Link 1 = /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l1.exe PID=   1003896.
   
  Copyright (c) 1988-2024, Gaussian, Inc.  All Rights Reserved.
   
@@ -3158,7 +3134,6 @@ s   1  0  0  0  1  1   1  0  1  0
  J. B. Foresman, and D. J. Fox, Gaussian, Inc., Wallingford CT, 2023.
  
  ******************************************
- Gaussian DV:  ES64L-GDVRevJ.28 14-Apr-2024
                 11-Oct-2025 
  ******************************************
  %oldchk=b3.chk
@@ -3189,7 +3164,6 @@ s   1  0  0  0  1  1   1  0  1  0
  6/7=2,8=2,9=2,10=2/1;
  99/9=10,10=1024/99;
  Leave Link    1 at Sat Oct 11 14:09:45 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.2
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l101.exe)
  Structure from the checkpoint file:  "mrcc_struc_FNO.chk"
  -------------------
  Title Card Required
@@ -3221,7 +3195,6 @@ s   1  0  0  0  1  1   1  0  1  0
  NMagM=    0.4037610   2.7928460   2.7928460   2.7928460
  AtZNuc=   7.0000000   1.0000000   1.0000000   1.0000000
  Leave Link  101 at Sat Oct 11 14:09:45 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.2
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -3248,7 +3221,6 @@ s   1  0  0  0  1  1   1  0  1  0
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:09:45 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -3284,7 +3256,6 @@ s   1  0  0  0  1  1   1  0  1  0
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         299.5962557         299.5962557         188.4160162
  Leave Link  202 at Sat Oct 11 14:09:45 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
  There are     3 symmetry adapted cartesian basis functions of A'  symmetry.
  There are     1 symmetry adapted cartesian basis functions of A"  symmetry.
@@ -3302,7 +3273,6 @@ s   1  0  0  0  1  1   1  0  1  0
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned on.
  Leave Link  301 at Sat Oct 11 14:09:45 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  External calculation of energy and first derivatives.
  Running external command "CentralExt mrcc 4 READ 2 1 $PMR/PR_FNO_CCSDTF12 $EMR/test_en.dat parall 16 R"
          input file       "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-1003896.EIn"
@@ -3608,9 +3578,7 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  Energy=    -56.4928890     NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:17:20 2025, MaxMem=   104857600 cpu:               0.0 elap:             454.3
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l601.exe)
  Leave Link  601 at Sat Oct 11 14:17:20 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  ***** Axes restored to original set *****
  -------------------------------------------------------------------
@@ -3624,7 +3592,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.001711925 RMS     0.000885366
  Leave Link  716 at Sat Oct 11 14:17:20 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -3681,7 +3648,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:17:20 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.2
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -3717,7 +3683,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         298.7450402         298.7450402         190.4869892
  Leave Link  202 at Sat Oct 11 14:17:20 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
  There are     3 symmetry adapted cartesian basis functions of A'  symmetry.
  There are     1 symmetry adapted cartesian basis functions of A"  symmetry.
@@ -3735,7 +3700,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned on.
  Leave Link  301 at Sat Oct 11 14:17:20 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  External calculation of energy and first derivatives.
  Running external command "CentralExt mrcc 4 READ 2 1 $PMR/PR_FNO_CCSDTF12 $EMR/test_en.dat parall 16 R"
          input file       "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-1003896.EIn"
@@ -4041,7 +4005,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  Energy=    -56.4929192     NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:25:43 2025, MaxMem=   104857600 cpu:               0.0 elap:             502.5
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  ***** Axes restored to original set *****
  -------------------------------------------------------------------
@@ -4055,7 +4018,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.000086227 RMS     0.000034716
  Leave Link  716 at Sat Oct 11 14:25:43 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -4134,7 +4096,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:25:43 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.2
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -4170,9 +4131,7 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         298.7450402         298.7450402         190.4869892
  Leave Link  202 at Sat Oct 11 14:25:43 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l601.exe)
  Leave Link  601 at Sat Oct 11 14:25:43 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l9999.exe)
  Unable to Open any file for archive entry.
  1\1\GINC-THIOTIMOLINE01\FOpt\External='CentralExt mrcc 4 READ 2 1 $PMR
  /PR_FNO_CCSDTF12 $EMR/test_en.dat parall\ZDO\H3N1\LCRISCI_VB\11-Oct-20
@@ -4180,7 +4139,6 @@ Task directories preserved in: /home/barone/lcrisci_vb/ACTUAL_PROJECTS/MRCC_new_
  NO_CCSDTF12 $EMR/test_en.dat parall 16" opt(nomicro,readFC) geom=allch
  eck\\Title Card Required\\0,1\N,0.,0.,0.1373693214\H,0.0000002041,0.93
  67479301,-0.2458270249\H,-0.8112476065,-0.4683737882,-0.2458270249\H,0
- .8112474023,-0.4683741418,-0.2458270249\\Version=ES64L-GDVRevJ.28\HF=-
  56.4929192\RMSD=0.000e+00\RMSF=3.472e-05\Dipole=0.,0.,0.\PG=C03V [C3(N
  1),3SGV(H1)]\\@
  The archive entry for this job was punched.
@@ -4248,8 +4206,6 @@ s   1  0  0  0  1  1   1  0  1  0
  File lengths (MBytes):  RWF=     24 Int=      0 D2E=      0 Chk=     19 Scr=      1
  Normal termination of Gaussian DV at Sat Oct 11 14:25:43 2025.
  Initial command:
- /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l1.exe "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-998094.inp" -scrdir="/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/"
- Entering Link 1 = /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l1.exe PID=   1007223.
   
  Copyright (c) 1988-2024, Gaussian, Inc.  All Rights Reserved.
   
@@ -4323,7 +4279,6 @@ s   1  0  0  0  1  1   1  0  1  0
  J. B. Foresman, and D. J. Fox, Gaussian, Inc., Wallingford CT, 2023.
  
  ******************************************
- Gaussian DV:  ES64L-GDVRevJ.28 14-Apr-2024
                 11-Oct-2025 
  ******************************************
  %oldchk=b3.chk
@@ -4354,7 +4309,6 @@ s   1  0  0  0  1  1   1  0  1  0
  6/7=2,8=2,9=2,10=2/1;
  99/9=10,10=1024/99;
  Leave Link    1 at Sat Oct 11 14:25:43 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.2
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l101.exe)
  Structure from the checkpoint file:  "molpro_struc.chk"
  -------------------
  Title Card Required
@@ -4386,7 +4340,6 @@ s   1  0  0  0  1  1   1  0  1  0
  NMagM=    0.4037610   2.7928460   2.7928460   2.7928460
  AtZNuc=   7.0000000   1.0000000   1.0000000   1.0000000
  Leave Link  101 at Sat Oct 11 14:25:43 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.2
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -4413,7 +4366,6 @@ s   1  0  0  0  1  1   1  0  1  0
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:25:43 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -4449,7 +4401,6 @@ s   1  0  0  0  1  1   1  0  1  0
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         299.5962557         299.5962557         188.4160162
  Leave Link  202 at Sat Oct 11 14:25:44 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
  There are     3 symmetry adapted cartesian basis functions of A'  symmetry.
  There are     1 symmetry adapted cartesian basis functions of A"  symmetry.
@@ -4467,7 +4418,6 @@ s   1  0  0  0  1  1   1  0  1  0
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned on.
  Leave Link  301 at Sat Oct 11 14:25:44 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  External calculation of energy and first derivatives.
  Running external command "CentralExt molpro_project $PRMOL/test.dat $ENDMOL/E_F12c.dat 16 64 read R"
          input file       "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-1007223.EIn"
@@ -4483,9 +4433,7 @@ Finished parsing scheme: [('coeff', 1.0)]
  Energy=    -56.4939331     NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:26:11 2025, MaxMem=   104857600 cpu:               0.0 elap:              27.9
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l601.exe)
  Leave Link  601 at Sat Oct 11 14:26:11 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  ***** Axes restored to original set *****
  -------------------------------------------------------------------
@@ -4499,7 +4447,6 @@ Finished parsing scheme: [('coeff', 1.0)]
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.001613495 RMS     0.000839775
  Leave Link  716 at Sat Oct 11 14:26:11 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -4556,7 +4503,6 @@ Finished parsing scheme: [('coeff', 1.0)]
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:26:12 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.3
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -4592,7 +4538,6 @@ Finished parsing scheme: [('coeff', 1.0)]
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         298.7391547         298.7391547         190.4001277
  Leave Link  202 at Sat Oct 11 14:26:12 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l301.exe)
  Standard basis: Dummy (5D, 7F)
  There are     3 symmetry adapted cartesian basis functions of A'  symmetry.
  There are     1 symmetry adapted cartesian basis functions of A"  symmetry.
@@ -4610,7 +4555,6 @@ Finished parsing scheme: [('coeff', 1.0)]
  Raffenetti 1 integral format.
  Two-electron integral symmetry is turned on.
  Leave Link  301 at Sat Oct 11 14:26:12 2025, MaxMem=   104857600 cpu:               0.1 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l402.exe)
  External calculation of energy and first derivatives.
  Running external command "CentralExt molpro_project $PRMOL/test.dat $ENDMOL/E_F12c.dat 16 64 read R"
          input file       "/local/scratch/lcrisci_vb/amm_Gaussian_73951.pbs.village.sns.it/Gau-1007223.EIn"
@@ -4626,7 +4570,6 @@ Finished parsing scheme: [('coeff', 1.0)]
  Energy=    -56.4939613     NIter=   0.
  Dipole moment=       0.000000       0.000000       0.000000
  Leave Link  402 at Sat Oct 11 14:26:39 2025, MaxMem=   104857600 cpu:               0.0 elap:              27.4
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l716.exe)
  Dipole        = 0.00000000D+00 0.00000000D+00 0.00000000D+00
  ***** Axes restored to original set *****
  -------------------------------------------------------------------
@@ -4640,7 +4583,6 @@ Finished parsing scheme: [('coeff', 1.0)]
  -------------------------------------------------------------------
  Cartesian Forces:  Max     0.000079079 RMS     0.000030623
  Leave Link  716 at Sat Oct 11 14:26:39 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l103.exe)
 
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
  Berny optimization.
@@ -4724,7 +4666,6 @@ Finished parsing scheme: [('coeff', 1.0)]
  GradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGradGrad
 
  Leave Link  103 at Sat Oct 11 14:26:40 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.1
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l202.exe)
                           Input orientation:                          
  ---------------------------------------------------------------------
  Center     Atomic      Atomic             Coordinates (Angstroms)
@@ -4760,9 +4701,7 @@ Finished parsing scheme: [('coeff', 1.0)]
  ---------------------------------------------------------------------
  Rotational constants (GHZ):         298.7391547         298.7391547         190.4001277
  Leave Link  202 at Sat Oct 11 14:26:40 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l601.exe)
  Leave Link  601 at Sat Oct 11 14:26:40 2025, MaxMem=   104857600 cpu:               0.0 elap:               0.0
- (Enter /home/barone/lcrisci_vb/Gaussian_Versions/gdv_AMD.j28//gdv/l9999.exe)
  Unable to Open any file for archive entry.
  1\1\GINC-THIOTIMOLINE01\FOpt\External='CentralExt molpro_project $PRMO
  L/test.dat $ENDMOL/E_F12c.dat 16 64 read\ZDO\H3N1\LCRISCI_VB\11-Oct-20
@@ -4770,7 +4709,6 @@ Finished parsing scheme: [('coeff', 1.0)]
  t.dat $ENDMOL/E_F12c.dat 16 64 read" opt(nomicro,readFC) geom=allcheck
  \\Title Card Required\\0,1\N,0.,0.,0.1371442114\H,0.0000002042,0.93696
  15803,-0.2457519446\H,-0.811432633,-0.4684806133,-0.2457519446\H,0.811
- 4324288,-0.468480967,-0.2457519446\\Version=ES64L-GDVRevJ.28\HF=-56.49
  39613\RMSD=0.000e+00\RMSF=3.062e-05\Dipole=0.,0.,0.\PG=C03V [C3(N1),3S
  GV(H1)]\\@
  The archive entry for this job was punched.
