@@ -258,7 +258,8 @@ def main():
                 mrcc_preamble_file=mrcc_preamble_file,
                 mrcc_end_file=mrcc_end_file,
                 operations=mrcc_operations, # Pass operations for advanced combination
-                formula=mrcc_formula # Pass custom formula if available
+                formula=mrcc_formula, # Pass custom formula if available
+                raw_output_dir=os.getcwd() # Write raw results to current working directory
             )
 
             # Results are already combined/scaled by the compute function
@@ -1607,7 +1608,7 @@ def handle_custom_basis(minp_file_path: str, section_id: str) -> bool:
 
     return genbas_created # Ritorna True solo se la copia è avvenuta con successo
 
-def compute_mrcc_energy(mpi_procs, omp_procs, mem, GauInput, OptFlag=False, readgradpy='NONE', coefficients=[], atoms=None, mrcc_preamble_file=None, mrcc_end_file=None, operations=None, formula=None):
+def compute_mrcc_energy(mpi_procs, omp_procs, mem, GauInput, OptFlag=False, readgradpy='NONE', coefficients=[], atoms=None, mrcc_preamble_file=None, mrcc_end_file=None, operations=None, formula=None, raw_output_dir=None):
     """
     Compute combined energy and optionally gradients using MRCC, handling multiple sequential calculations
     defined by sections in input files and scaled by provided coefficients.
@@ -1626,6 +1627,7 @@ def compute_mrcc_energy(mpi_procs, omp_procs, mem, GauInput, OptFlag=False, read
         mrcc_end_file (str, optional): Path to the MRCC ending file with sections.
         operations (list, optional): List of operation tuples for advanced combination (copy, coeff).
         formula (str, optional): Custom formula string for non-linear combinations.
+        raw_output_dir (str, optional): Directory to write raw_analytical_results.dat with uncombined results.
 
     Returns:
         tuple: (combined_energy, dipole, combined_gradient)
@@ -2084,6 +2086,11 @@ def compute_mrcc_energy(mpi_procs, omp_procs, mem, GauInput, OptFlag=False, read
               print(f"  Atom {i+1}: {combined_gradient[i][0]:15.10f} {combined_gradient[i][1]:15.10f} {combined_gradient[i][2]:15.10f}")
     print(77*"=")
 
+    # --- Write Raw Analytical Results (for mixed mode support) ---
+    if raw_output_dir and calculation_results:
+        raw_output_path = os.path.join(raw_output_dir, "raw_analytical_results.dat")
+        write_raw_analytical_results(raw_output_path, calculation_results, atoms)
+
     return combined_energy, dipole, combined_gradient
 
 
@@ -2282,6 +2289,53 @@ def write_output(GauOutput, energy, dipole_moment=[0.0, 0.0, 0.0], Gradient=None
         print(f"An unexpected error occurred during output writing: {e}")
         # Consider exiting depending on severity
         sys.exit(1)
+
+
+def write_raw_analytical_results(output_path, calculation_results, atoms):
+    """
+    Write raw (uncombined) analytical results to a separate file for use by CentralExt.
+    This preserves individual section energies and gradients before coefficient application.
+
+    Args:
+        output_path (str): Path to write the raw results file (raw_analytical_results.dat)
+        calculation_results (list): List of dicts with 'raw_energy', 'raw_gradient', 'coefficient', etc.
+        atoms (int): Number of atoms for gradient validation
+    """
+    print(f"\nWriting raw analytical results to: {output_path}")
+    try:
+        with open(output_path, 'w') as f:
+            f.write("# RAW_ANALYTICAL_RESULTS\n")
+            f.write(f"# SECTION_COUNT: {len(calculation_results)}\n")
+
+            for i, result in enumerate(calculation_results):
+                section_idx = result.get("index", i + 1)
+                raw_energy = result.get("raw_energy", 0.0)
+                raw_gradient = result.get("raw_gradient", [])
+                coeff = result.get("coefficient", 1.0)
+
+                f.write(f"# SECTION {section_idx}\n")
+                f.write(f"COEFFICIENT: {coeff:.12f}\n")
+                f.write(f"ENERGY: {raw_energy:.12f}\n")
+
+                if raw_gradient and len(raw_gradient) > 0:
+                    f.write("GRADIENT:\n")
+                    for atom_idx, grad in enumerate(raw_gradient):
+                        if isinstance(grad, (list, tuple)) and len(grad) >= 3:
+                            f.write(f"{grad[0]:20.12f} {grad[1]:20.12f} {grad[2]:20.12f}\n")
+                        else:
+                            # Handle malformed gradient
+                            f.write(f"0.0 0.0 0.0\n")
+                else:
+                    f.write("GRADIENT: NONE\n")
+
+                f.write("\n")
+
+        print(f"  Raw analytical results written successfully ({len(calculation_results)} sections)")
+
+    except IOError as e:
+        print(f"ERROR: Cannot write raw analytical results to '{output_path}': {e}")
+    except Exception as e:
+        print(f"ERROR: Unexpected error writing raw analytical results: {e}")
 
 
 # --- Module Loading Helper (Example) ---

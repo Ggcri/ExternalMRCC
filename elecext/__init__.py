@@ -1008,3 +1008,106 @@ def combine_mixed_energies(analytical_energies, numerical_energies, analytical_i
     print("--- Energy Combination Complete ---\n")
 
     return combined_energy
+
+
+def parse_raw_analytical_results(file_path, atoms):
+    """
+    Parse the raw_analytical_results.dat file to extract individual section
+    energies and gradients before coefficient application.
+
+    Args:
+        file_path (str): Path to raw_analytical_results.dat
+        atoms (int): Expected number of atoms for gradient validation
+
+    Returns:
+        list: List of dicts with 'energy', 'gradient', 'coefficient' for each section.
+              Returns empty list if file doesn't exist or parse fails.
+    """
+    import numpy as np
+
+    results = []
+
+    if not os.path.exists(file_path):
+        print(f"WARNING: Raw analytical results file not found: {file_path}")
+        return results
+
+    try:
+        with open(file_path, 'r') as f:
+            content = f.read()
+
+        lines = content.strip().split('\n')
+        i = 0
+        current_section = None
+
+        while i < len(lines):
+            line = lines[i].strip()
+
+            # Skip empty lines
+            if not line:
+                i += 1
+                continue
+
+            # Check for header
+            if line.startswith("# RAW_ANALYTICAL_RESULTS"):
+                i += 1
+                continue
+
+            # Check for section count
+            if line.startswith("# SECTION_COUNT:"):
+                section_count = int(line.split(":")[1].strip())
+                print(f"Parsing {section_count} raw analytical sections from {file_path}")
+                i += 1
+                continue
+
+            # Check for section marker
+            if line.startswith("# SECTION"):
+                current_section = {
+                    'energy': 0.0,
+                    'gradient': None,
+                    'coefficient': 1.0
+                }
+                results.append(current_section)
+                i += 1
+                continue
+
+            # Parse coefficient
+            if line.startswith("COEFFICIENT:") and current_section is not None:
+                current_section['coefficient'] = float(line.split(":")[1].strip())
+                i += 1
+                continue
+
+            # Parse energy
+            if line.startswith("ENERGY:") and current_section is not None:
+                current_section['energy'] = float(line.split(":")[1].strip())
+                i += 1
+                continue
+
+            # Parse gradient
+            if line.startswith("GRADIENT:") and current_section is not None:
+                if "NONE" in line:
+                    current_section['gradient'] = None
+                    i += 1
+                    continue
+                else:
+                    # Read gradient lines
+                    gradient = np.zeros((atoms, 3))
+                    i += 1
+                    for atom_idx in range(atoms):
+                        if i < len(lines):
+                            grad_line = lines[i].strip()
+                            if grad_line and not grad_line.startswith("#"):
+                                parts = grad_line.split()
+                                if len(parts) >= 3:
+                                    gradient[atom_idx] = [float(parts[0]), float(parts[1]), float(parts[2])]
+                            i += 1
+                    current_section['gradient'] = gradient
+                    continue
+
+            i += 1
+
+        print(f"Successfully parsed {len(results)} raw analytical results")
+        return results
+
+    except Exception as e:
+        print(f"ERROR parsing raw analytical results from {file_path}: {e}")
+        return []

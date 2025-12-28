@@ -188,7 +188,8 @@ def run_parallel_numerical_gradient():
         split_preamble_by_gradient_type,
         parse_scheme_and_formula,
         combine_mixed_gradients,
-        combine_mixed_energies
+        combine_mixed_energies,
+        parse_raw_analytical_results
     )
 
     print("\n" + "="*80)
@@ -525,36 +526,71 @@ def run_parallel_numerical_gradient():
                             print(f"ERROR ANALYTICAL: STDERR:\n{e.stderr}")
                         raise
 
-                    # Parse gradient from output file
-                    output_path = os.path.join(task_dir, output_name)
-                    if not os.path.exists(output_path):
-                        raise FileNotFoundError(f"Analytical gradient output not found: {output_path}")
+                    # Try to read raw analytical results (individual section results before combination)
+                    raw_results_path = os.path.join(task_dir, "raw_analytical_results.dat")
 
-                    with open(output_path, 'r') as f:
-                        first_line = f.readline().strip()
-                        if not first_line:
-                            raise ValueError(f"Empty analytical output file: {output_path}")
-                        energy = float(first_line.split(',')[0])
+                    if os.path.exists(raw_results_path):
+                        # Use raw results for proper coefficient handling in mixed mode
+                        print(f"ANALYTICAL: Reading raw results from {raw_results_path}")
+                        raw_results = parse_raw_analytical_results(raw_results_path, atoms)
 
-                        # Read gradient lines
-                        gradient_lines = f.readlines()
-                        if len(gradient_lines) < atoms:
-                            raise ValueError(f"Insufficient gradient lines in {output_path}: expected {atoms}, got {len(gradient_lines)}")
+                        if raw_results and len(raw_results) > 0:
+                            for result in raw_results:
+                                analytical_energies.append(result['energy'])
+                                if result['gradient'] is not None:
+                                    analytical_gradients.append(result['gradient'].copy())
+                                else:
+                                    analytical_gradients.append(np.zeros((atoms, 3)))
 
-                        gradient = np.zeros((atoms, 3))
-                        for i, line in enumerate(gradient_lines[:atoms]):
-                            parts = line.split()
-                            if len(parts) < 3:
-                                raise ValueError(f"Invalid gradient line format in {output_path}: {line}")
-                            gradient[i] = [float(parts[0]), float(parts[1]), float(parts[2])]
+                            print(f"ANALYTICAL: Parsed {len(raw_results)} RAW gradient(s) from output")
+                            print(f"ANALYTICAL: Raw energies = {analytical_energies}")
+                        else:
+                            # Fallback to combined output if raw parsing failed
+                            print(f"WARNING ANALYTICAL: Raw results parsing failed, falling back to combined output")
+                            output_path = os.path.join(task_dir, output_name)
+                            if not os.path.exists(output_path):
+                                raise FileNotFoundError(f"Analytical gradient output not found: {output_path}")
+                            with open(output_path, 'r') as f:
+                                first_line = f.readline().strip()
+                                energy = float(first_line.split(',')[0])
+                                gradient_lines = f.readlines()
+                                gradient = np.zeros((atoms, 3))
+                                for i, line in enumerate(gradient_lines[:atoms]):
+                                    parts = line.split()
+                                    gradient[i] = [float(parts[0]), float(parts[1]), float(parts[2])]
+                            # Single combined result (old behavior)
+                            analytical_energies.append(energy)
+                            analytical_gradients.append(gradient.copy())
+                    else:
+                        # Legacy fallback: read combined output file
+                        print(f"ANALYTICAL: raw_analytical_results.dat not found, using combined output")
+                        output_path = os.path.join(task_dir, output_name)
+                        if not os.path.exists(output_path):
+                            raise FileNotFoundError(f"Analytical gradient output not found: {output_path}")
 
-                    # Store results for each analytical section
-                    for idx in analytical_indices:
-                        analytical_gradients.append(gradient.copy())
+                        with open(output_path, 'r') as f:
+                            first_line = f.readline().strip()
+                            if not first_line:
+                                raise ValueError(f"Empty analytical output file: {output_path}")
+                            energy = float(first_line.split(',')[0])
+
+                            # Read gradient lines
+                            gradient_lines = f.readlines()
+                            if len(gradient_lines) < atoms:
+                                raise ValueError(f"Insufficient gradient lines in {output_path}: expected {atoms}, got {len(gradient_lines)}")
+
+                            gradient = np.zeros((atoms, 3))
+                            for i, line in enumerate(gradient_lines[:atoms]):
+                                parts = line.split()
+                                if len(parts) < 3:
+                                    raise ValueError(f"Invalid gradient line format in {output_path}: {line}")
+                                gradient[i] = [float(parts[0]), float(parts[1]), float(parts[2])]
+
+                        # Single combined result (legacy behavior - may cause issues in mixed mode)
                         analytical_energies.append(energy)
+                        analytical_gradients.append(gradient.copy())
 
-                    print(f"ANALYTICAL: Parsed {len(analytical_indices)} gradient(s) from output")
-                    print(f"ANALYTICAL: Energy = {energy}, Gradient shape = {gradient.shape}")
+                    print(f"ANALYTICAL: Stored {len(analytical_energies)} analytical energy(ies)")
 
             # ====================================================================
             # NUMERICAL GRADIENT WORKFLOW
@@ -940,17 +976,28 @@ def run_parallel_numerical_gradient():
             print(f"Analytical energies: {len(analytical_energies)}")
             print(f"Numerical energies: {len(numerical_energies)}")
 
-            # In mixed mode, coefficients have already been applied by MRCC_ext
-            # when processing the individual preambles with their reduced schemes.
-            # Therefore, we need to use unit coefficients for the final combination
-            # to avoid double-counting the coefficients.
+            # Determine if we have raw (uncombined) analytical results
+            # If analytical_energies count matches analytical_indices count, we have raw results
+            # and should use original coefficients. Otherwise, we have pre-combined results.
+            have_raw_analytical = (len(analytical_energies) == len(analytical_indices))
+
             if mixed_mode and len(analytical_gradients) > 0 and len(numerical_gradients) > 0:
-                # Create operations with unit coefficients for simple summation
-                num_total_sections = len(analytical_indices) + len(numerical_indices)
-                operations_for_combination = [('coeff', 1.0) for _ in range(num_total_sections)]
-                print(f"\nMIXED MODE: Using unit coefficients for final combination (coefficients already applied)")
-                print(f"  Original operations: {operations}")
-                print(f"  Combination operations: {operations_for_combination}")
+                if have_raw_analytical:
+                    # NEW: Using raw analytical results - apply ORIGINAL coefficients
+                    # Raw energies/gradients are NOT pre-weighted, so we need to apply coefficients now
+                    operations_for_combination = operations
+                    print(f"\nMIXED MODE: Using ORIGINAL coefficients (raw analytical results detected)")
+                    print(f"  Analytical sections: {len(analytical_energies)} (matches {len(analytical_indices)} indices)")
+                    print(f"  Operations: {operations_for_combination}")
+                else:
+                    # LEGACY: Analytical results are pre-combined, use unit coefficients
+                    # This is the old behavior for backwards compatibility
+                    num_total_sections = len(analytical_indices) + len(numerical_indices)
+                    operations_for_combination = [('coeff', 1.0) for _ in range(num_total_sections)]
+                    print(f"\nMIXED MODE: Using unit coefficients (pre-combined analytical results)")
+                    print(f"  WARNING: Analytical sections: {len(analytical_energies)} vs {len(analytical_indices)} indices - results may be incorrect")
+                    print(f"  Original operations: {operations}")
+                    print(f"  Combination operations: {operations_for_combination}")
             else:
                 # All-analytical or all-numerical mode: use original operations
                 operations_for_combination = operations
