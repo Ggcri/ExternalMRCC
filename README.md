@@ -33,7 +33,7 @@
 ```gaussian
 %chk=molecule.chk
 %nproc=1
-#p External="CentralExt mrcc 16GB READ 4 1 preamble.dat ending.dat" Force
+#p External="CentralExt mrcc 16GB READ 4 1 preamble.dat ending.dat" opt(nomicro)
 
 Water molecule optimization
 
